@@ -1,33 +1,51 @@
-# Togepe — Phase 1
+# Pinitup
 
-Content platform skeleton — accounts, admin-managed content, and the core collection/engagement loop.
+Pinitup is a full-stack web application currently under development.
 
-## Structure
+## Tech Stack
 
-- `client/` — React + Vite frontend
-- `server/` — Node + Express backend, MongoDB via Mongoose
+- React
+- Vite
+- Node.js
+- Express.js
+- MongoDB
 
-## Local Setup
+## Project Structure
 
-### Server
 ```
-cd server
-npm install
-cp .env.example .env   # fill in MONGO_URI and JWT_SECRET
-npm run dev
+client/
+server/
+docs/
 ```
 
-### Client
-```
+## Getting Started
+
+### Install dependencies
+
+```bash
 cd client
 npm install
-cp .env.example .env   # fill in VITE_API_URL
+
+cd ../server
+npm install
+```
+
+### Run the project
+
+Frontend
+
+```bash
+cd client
 npm run dev
 ```
 
-## Deployment
+Backend
 
-- Frontend → Vercel (auto-deploy from `main`)
-- Backend → Render (auto-deploy from `main`)
-- Database → MongoDB Atlas
-- Media → ImageKit / Cloudinary
+```bash
+cd server
+npm run dev
+```
+
+## Project Status
+
+🚧 Under Active Development
