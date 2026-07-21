@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import api from "./services/api.js";
+
 import LoginPage from "./pages/LoginPage.jsx";
 import OAuthSuccess from "./pages/OAuthSuccess.jsx";
+import AddPromptPage from "./pages/AddPromptPage.jsx";
 
-// Existing status-check placeholder, unchanged — just now rendered at "/"
-// via the router instead of being the entire app.
+// Existing status-check placeholder
 function StatusPage() {
   const [status, setStatus] = useState("checking...");
 
@@ -18,7 +19,7 @@ function StatusPage() {
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>Togepe — Phase 1</h1>
+      <h1>Togepe – Phase 1</h1>
       <p>Backend status: {status}</p>
     </div>
   );
@@ -31,6 +32,7 @@ function App() {
         <Route path="/" element={<StatusPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
+        <Route path="/add-prompt" element={<AddPromptPage />} />
       </Routes>
     </BrowserRouter>
   );

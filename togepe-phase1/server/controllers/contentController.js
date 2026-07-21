@@ -31,18 +31,27 @@ const parseTags = (rawTags) => {
 // POST /api/content
 // Expects: multipart/form-data — file field "media", plus body fields
 // "prompt", "type" ("image"|"video"), optional "tags".
-// Requires `protect` middleware upstream so req.user.id is available.
+// Requires `protect` middleware upstream so req.user.id is available
+// (wiring happens in Phase A4).
 export const createContent = async (req, res) => {
   try {
-    const { prompt, type } = req.body;
+    const { prompt, type, title, description, category } = req.body;
     const tags = parseTags(req.body.tags);
 
     if (!req.file) {
       return res.status(400).json({ message: "A media file is required" });
     }
 
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({ message: "Prompt text is required" });
+    }
+
+    if (!category || !category.trim()) {
+      return res.status(400).json({ message: "Category is required" });
     }
 
     if (!type || !ALLOWED_TYPES.has(type)) {
@@ -55,11 +64,6 @@ export const createContent = async (req, res) => {
 
     let uploadResult;
     try {
-      console.log("=== Upload Debug ===");
-console.log("Cloud:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("Key:", process.env.CLOUDINARY_API_KEY);
-console.log("Secret exists:", !!process.env.CLOUDINARY_API_SECRET);
-console.log("File:", req.file);
       uploadResult = await uploadBufferToCloudinary(req.file.buffer, {
         resourceType: type,
         folder: "pinitup",
@@ -72,6 +76,9 @@ console.log("File:", req.file);
       type,
       mediaUrl: uploadResult.secure_url,
       mediaPublicId: uploadResult.public_id,
+      title: title.trim(),
+      description: description?.trim() || "",
+      category: category.trim(),
       prompt: prompt.trim(),
       tags,
       uploadedBy: req.user.id,
@@ -145,8 +152,9 @@ export const getContentById = async (req, res) => {
 };
 
 // DELETE /api/content/:id
-// Requires `protect` middleware upstream. Removes the Cloudinary asset
-// alongside the DB doc so no orphaned files are left behind.
+// Requires `protect` + `requireAdmin` middleware upstream (wiring happens
+// in Phase A4). Removes the Cloudinary asset alongside the DB doc so no
+// orphaned files are left behind.
 export const deleteContent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -165,6 +173,8 @@ export const deleteContent = async (req, res) => {
       try {
         await deleteFromCloudinary(content.mediaPublicId, content.type);
       } catch (cloudinaryError) {
+        // Log and continue — a failed remote cleanup shouldn't block removing
+        // the DB record, but it's worth surfacing for manual follow-up.
         console.error(`Failed to delete Cloudinary asset ${content.mediaPublicId}:`, cloudinaryError.message);
       }
     }
