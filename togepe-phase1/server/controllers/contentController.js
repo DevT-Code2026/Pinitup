@@ -55,6 +55,11 @@ export const createContent = async (req, res) => {
 
     let uploadResult;
     try {
+      console.log("=== Upload Debug ===");
+console.log("Cloud:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("Key:", process.env.CLOUDINARY_API_KEY);
+console.log("Secret exists:", !!process.env.CLOUDINARY_API_SECRET);
+console.log("File:", req.file);
       uploadResult = await uploadBufferToCloudinary(req.file.buffer, {
         resourceType: type,
         folder: "pinitup",

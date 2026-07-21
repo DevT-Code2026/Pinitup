@@ -46,6 +46,19 @@ export const registerUser = async (req, res) => {
   }
 };
 
+// GET /api/auth/google/callback
+// Runs after Passport's GoogleStrategy has already verified the user and
+// attached it to req.user (see config/passport.js). Reuses the exact same
+// generateToken() as register/login, so downstream JWT verification in
+// authMiddleware.js needs no changes at all.
+export const googleAuthCallback = (req, res) => {
+  const user = req.user;
+  const token = generateToken(user);
+
+  const redirectUrl = `${process.env.CLIENT_URL}/oauth-success?token=${token}`;
+  res.redirect(redirectUrl);
+};
+
 // POST /api/auth/login
 export const loginUser = async (req, res) => {
   try {

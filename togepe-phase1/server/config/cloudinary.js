@@ -1,4 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
+
+// Load env vars before configuring Cloudinary. This is necessary because
+// ES module imports are hoisted — cloudinary.js executes before
+// dotenv.config() in server.js runs, so without this the env vars would
+// be undefined when cloudinary.config() is called below.
+dotenv.config();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,9 +34,12 @@ export const uploadBufferToCloudinary = (buffer, { resourceType = "image", folde
         folder,
       },
       (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
+  console.log("Cloudinary Error:", error);
+  console.log("Cloudinary Result:", result);
+
+  if (error) return reject(error);
+  resolve(result);
+}
     );
 
     uploadStream.end(buffer);
