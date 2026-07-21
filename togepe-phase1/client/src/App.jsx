@@ -5,6 +5,9 @@ import api from "./services/api.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import OAuthSuccess from "./pages/OAuthSuccess.jsx";
 import AddPromptPage from "./pages/AddPromptPage.jsx";
+import Dashboard from "./pages/Dashboard";
+
+
 
 // Existing status-check placeholder
 function StatusPage() {
@@ -33,6 +36,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/add-prompt" element={<AddPromptPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );
