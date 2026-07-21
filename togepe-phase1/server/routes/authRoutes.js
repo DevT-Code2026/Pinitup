@@ -14,11 +14,21 @@ router.get(
 );
 
 // GET /api/auth/google/callback — Google redirects back here after consent
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: `${process.env.CLIENT_URL}/login` }),
-  googleAuthCallback
-);
+// Custom callback handler provides better error logging and debugging.
+router.get("/google/callback", (req, res, next) => {
+  passport.authenticate("google", { session: false }, (err, user, info) => {
+    if (err) {
+      console.error("Google OAuth error:", err);
+      return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_error`);
+    }
+    if (!user) {
+      console.error("Google OAuth no user:", info);
+      return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+}, googleAuthCallback);
 
 router.get("/ping", (req, res) => res.json({ message: "auth route working" }));
 

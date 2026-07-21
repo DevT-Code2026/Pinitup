@@ -5,6 +5,7 @@ import "./config/env.js";
 
 import express from "express";
 import cors from "cors";
+import session from "express-session";
 import passport from "passport";
 import connectDB from "./config/db.js";
 import "./config/passport.js"; // registers the Google OAuth strategy as a side effect
@@ -20,7 +21,18 @@ const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
 app.use(express.json());
+
+// Required by Passport's Google OAuth for state parameter (CSRF protection)
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || "pinitup-session-secret",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
 app.use(passport.initialize());
+app.use(passport.session());
 
 app.get("/", (req, res) => res.send("Togepe API is running"));
 

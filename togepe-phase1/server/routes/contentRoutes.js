@@ -1,5 +1,6 @@
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
+import optionalAuth from "../middleware/optionalAuth.js";
 import upload, { handleUploadErrors } from "../middleware/uploadMiddleware.js";
 import {
   createContent,
@@ -18,14 +19,14 @@ const router = express.Router();
 router.post("/", protect, upload.single("media"), handleUploadErrors, createContent);
 
 // GET /api/content
-// Public — no `protect` here on purpose. getAllContent checks req.user
-// itself and falls back to the guest 5-item limit when it's absent, so
-// guests must be able to reach this route without a token.
-router.get("/", getAllContent);
+// Public — uses optionalAuth so authenticated users get full access
+// (no 5-item guest limit), while unauthenticated guests still see
+// the first GUEST_CONTENT_LIMIT items.
+router.get("/", optionalAuth, getAllContent);
 
 // GET /api/content/:id
-// Public, same reasoning as above.
-router.get("/:id", getContentById);
+// Public — uses optionalAuth for the same reason as above.
+router.get("/:id", optionalAuth, getContentById);
 
 // DELETE /api/content/:id
 // Requires an authenticated user. Admin-only enforcement deferred for the

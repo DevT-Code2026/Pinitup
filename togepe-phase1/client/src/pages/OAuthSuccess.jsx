@@ -14,7 +14,25 @@ function OAuthSuccess() {
 
     if (token) {
       localStorage.setItem("token", token);
-      navigate("/", { replace: true });
+
+      // Decode the JWT payload to extract user info (id, role, name, email)
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: payload.id,
+            name: payload.name,
+            email: payload.email,
+            role: payload.role,
+          })
+        );
+      } catch {
+        // If decoding fails, user info simply won't be in localStorage;
+        // Dashboard will fall back to "Creator" as the display name.
+      }
+
+      navigate("/dashboard", { replace: true });
     } else {
       navigate("/login", { replace: true });
     }

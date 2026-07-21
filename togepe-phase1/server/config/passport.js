@@ -51,4 +51,19 @@ passport.use(
   )
 );
 
+// Serialize only the user ID into the session (required when using
+// passport.session() for Google OAuth state parameter support).
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
+
 export default passport;
