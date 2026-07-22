@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +13,7 @@ import {
 
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
+import LikeButton from "../components/LikeButton.jsx";
 
 import api from "../services/api";
 
@@ -32,6 +33,8 @@ export default function PromptDetail() {
 
   const [notFound, setNotFound] = useState(false);
 
+  const [liked, setLiked] = useState(false);
+
   const fetchPrompt = async () => {
     try {
       setLoading(true);
@@ -41,6 +44,7 @@ export default function PromptDetail() {
       const res = await api.get(`/content/${id}`);
 
       setPrompt(res.data.content || null);
+      setLiked(res.data.content?.isLiked || false);
     } catch (err) {
       const status = err.response?.status;
 
@@ -71,6 +75,18 @@ export default function PromptDetail() {
       year: "numeric",
     });
   };
+
+  const handleToggleLike = useCallback(
+    (contentId, nextLiked, nextCount) => {
+      setLiked(nextLiked);
+      setPrompt((prev) =>
+        prev?._id === contentId
+          ? { ...prev, likesCount: nextCount, isLiked: nextLiked }
+          : prev
+      );
+    },
+    []
+  );
 
   let bodyContent;
 
@@ -193,6 +209,15 @@ export default function PromptDetail() {
               <CalendarDays size={16} />
               {formatDate(prompt.createdAt)}
             </span>
+          </div>
+
+          <div className="prompt-detail__actions">
+            <LikeButton
+              contentId={prompt._id}
+              liked={liked}
+              likesCount={prompt.likesCount || 0}
+              onToggle={handleToggleLike}
+            />
           </div>
 
           <div className="prompt-detail__prompt-box">

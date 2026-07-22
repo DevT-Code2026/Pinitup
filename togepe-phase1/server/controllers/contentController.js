@@ -2,10 +2,36 @@ import mongoose from "mongoose";
 import Content from "../models/Content.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
 
+import Like from "../models/Like.js";
+
 const ALLOWED_TYPES = new Set(["image", "video"]);
 const GUEST_CONTENT_LIMIT = 5;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
+
+// Attaches an `isLiked` boolean to each content item for the given user.
+// When userId is null (guest), every item gets isLiked: false.
+const attachLikedStatus = async (items, userId) => {
+  if (!userId || !items.length) {
+    return items.map((item) => ({ ...item, isLiked: false }));
+  }
+
+  const contentIds = items.map((item) => item._id);
+
+  const likedDocs = await Like.find({
+    user: userId,
+    content: { $in: contentIds },
+  })
+    .select("content")
+    .lean();
+
+  const likedSet = new Set(likedDocs.map((doc) => String(doc.content)));
+
+  return items.map((item) => ({
+    ...item,
+    isLiked: likedSet.has(String(item._id)),
+  }));
+};
 
 // Parses a comma-separated or JSON-array tags field from a multipart form
 // body into a clean array of trimmed, non-empty strings.
@@ -117,8 +143,10 @@ export const getAllContent = async (req, res) => {
       isGuest ? Promise.resolve(GUEST_CONTENT_LIMIT) : Content.countDocuments(),
     ]);
 
+    const enriched = await attachLikedStatus(items, req.user?.id || null);
+
     return res.status(200).json({
-      content: items,
+      content: enriched,
       guestLimited: isGuest,
       pagination: isGuest
         ? { total: Math.min(total, GUEST_CONTENT_LIMIT), page: 1, limit: effectiveLimit }
@@ -145,7 +173,9 @@ export const getContentById = async (req, res) => {
       return res.status(404).json({ message: "Content not found" });
     }
 
-    return res.status(200).json({ content });
+    const items = await attachLikedStatus([content.toObject()], req.user?.id || null);
+
+    return res.status(200).json({ content: items[0] });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch content", error: error.message });
   }

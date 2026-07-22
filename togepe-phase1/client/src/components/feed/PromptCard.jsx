@@ -1,8 +1,16 @@
 import { motion } from "framer-motion";
 import { CalendarDays, Tag, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import LikeButton from "../LikeButton.jsx";
 
-export default function PromptCard({ prompt, index = 0, href, onClick }) {
+export default function PromptCard({
+  prompt,
+  index = 0,
+  href,
+  onClick,
+  liked = false,
+  onToggleLike,
+}) {
   const formatDate = (date) => {
     if (!date) return "Recently";
 
@@ -70,6 +78,16 @@ export default function PromptCard({ prompt, index = 0, href, onClick }) {
             ))}
           </div>
         )}
+
+        <div className="feed-prompt-card__like-row">
+          <LikeButton
+            contentId={prompt._id}
+            liked={liked}
+            likesCount={prompt.likesCount || 0}
+            onToggle={onToggleLike}
+            size="small"
+          />
+        </div>
 
         {isInteractive && (
           <div className="feed-prompt-card__footer">

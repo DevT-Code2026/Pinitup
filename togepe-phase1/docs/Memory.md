@@ -102,13 +102,15 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - Google OAuth decodes JWT payload client-side for user info (no separate /me endpoint yet)
 - Dark mode first design with glassmorphism
 - No TypeScript — project uses plain JSX with Vite
+- Likes use optimistic updates with server reconciliation; LikeButton handles its own API call and reverts on failure
+- Content endpoints attach isLiked via bulk Like query (not aggregation pipeline) for simplicity
 
 ## Database Schema Summary
 
 - **User:** name, email, passwordHash, role (user/admin), provider (local/google), googleId, avatar
 - **Content:** type, mediaUrl, mediaPublicId, title, description, category, prompt, tags[], uploadedBy (ref User), likesCount, sharesCount
 - **Board:** owner (ref User), name, savedContent[] (ref Content) — schema only
-- **Like:** user (ref User), content (ref Content), unique compound index — schema only
+- **Like:** user (ref User), content (ref Content), unique compound index — fully implemented
 
 ## API Summary
 
@@ -120,21 +122,21 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `GET /api/content` — list content (public, optional auth for guest limits)
 - `GET /api/content/:id` — get single content
 - `DELETE /api/content/:id` — delete content (auth required)
+- `POST /api/likes/:contentId` — toggle like/unlike (auth required), returns `{ liked, likesCount }`
 - `GET /api/boards/ping` — stub
-- `GET /api/likes/ping` — stub
+- `GET /api/likes/ping` — working
 
 ## Current Phase
 
-Phase 1 Complete — Auth system fully wired, core CRUD operational
+Phase 1 Complete — Auth + Likes + Core CRUD operational
 
 ## Next Tasks
 
 1. Board/Collection CRUD implementation
-2. Like/unlike functionality
-3. Admin dashboard
-4. User profile page
-5. Registration UI
-6. Guest browsing limits
+2. Admin dashboard
+3. User profile page
+4. Registration UI
+5. Guest browsing limits
 
 ## Daily Progress Log
 
@@ -146,6 +148,15 @@ Phase 1 Complete — Auth system fully wired, core CRUD operational
 - Removed duplicate auth guards from Dashboard and AddPromptPage
 - Added catch-all route in App.jsx
 - Verified clean build (vite build passes)
+- **Likes feature implemented:**
+  - Backend: likeController (toggleLike), likeRoutes wired with protect middleware
+  - Backend: contentController now returns isLiked for authenticated users (getAllContent, getContentById)
+  - Frontend: LikeButton component (reusable, optimistic updates, spring animation)
+  - Frontend: LikeButton integrated into PromptCard (feed) and PromptDetail (detail page)
+  - Frontend: Feed tracks likedIds Set and syncs state on toggle
+  - Frontend: "Most Liked" sort works via existing likesCount sort
+  - CSS: like-button styles with active/hover/small variants
+  - Verified clean build
 
 ## Developer Notes
 

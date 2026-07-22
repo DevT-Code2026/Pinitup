@@ -606,3 +606,84 @@
     padding: 44px 20px;
   }
 }
+
+/* ==========================
+   Like Button
+========================== */
+
+.like-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 12px;
+  border: 1px solid #e7ebf3;
+  border-radius: 999px;
+
+  background: #f6f8fc;
+  color: #6b7280;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.like-button:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.like-button--active {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.like-button--active:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+.like-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.like-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.like-button__count {
+  line-height: 1;
+}
+
+/* Compact variant for card footers */
+.like-button--small {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  gap: 4px;
+}
+
+/* Prompt card like row */
+.feed-prompt-card__like-row {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eef1f6;
+}
+
+/* Prompt detail like bar */
+.prompt-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding-top: 8px;
+}

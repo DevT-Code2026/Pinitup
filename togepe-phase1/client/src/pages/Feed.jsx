@@ -31,6 +31,8 @@ export default function Feed() {
 
   const [sortBy, setSortBy] = useState("newest");
 
+  const [likedIds, setLikedIds] = useState(() => new Set());
+
   const fetchFeed = useCallback(
     async (showRefresh = false) => {
       try {
@@ -54,6 +56,14 @@ export default function Feed() {
             ? res.data.content
             : []
         );
+
+        setLikedIds(() => {
+          const ids = new Set();
+          (res.data.content || []).forEach((item) => {
+            if (item.isLiked) ids.add(item._id);
+          });
+          return ids;
+        });
       } catch (err) {
         console.error(err);
 
@@ -72,6 +82,23 @@ export default function Feed() {
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
+
+  const handleToggleLike = useCallback((contentId, nextLiked, nextCount) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (nextLiked) next.add(contentId);
+      else next.delete(contentId);
+      return next;
+    });
+
+    setPrompts((prev) =>
+      prev.map((p) =>
+        p._id === contentId
+          ? { ...p, likesCount: nextCount, isLiked: nextLiked }
+          : p
+      )
+    );
+  }, []);
 
   const categories = useMemo(() => {
     const unique = new Set(
@@ -173,7 +200,13 @@ export default function Feed() {
       />
     );
   } else {
-    feedContent = <PromptGrid prompts={sortedPrompts} />;
+    feedContent = (
+      <PromptGrid
+        prompts={sortedPrompts}
+        likedIds={likedIds}
+        onToggleLike={handleToggleLike}
+      />
+    );
   }
 
   return (

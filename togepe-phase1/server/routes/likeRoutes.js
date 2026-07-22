@@ -1,9 +1,11 @@
 import express from "express";
+import protect from "../middleware/authMiddleware.js";
+import { toggleLike } from "../controllers/likeController.js";
 
 const router = express.Router();
 
-// Day 5 will implement these:
-// router.post("/:contentId", protect, toggleLike);
+// POST /api/likes/:contentId — toggle like/unlike (authenticated)
+router.post("/:contentId", protect, toggleLike);
 
 router.get("/ping", (req, res) => res.json({ message: "like route working" }));
 
