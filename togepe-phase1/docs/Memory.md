@@ -90,6 +90,21 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - Frontend: Save button added to PromptCard and PromptDetail with active state styling
 - Frontend: Sidebar updated — "Categories" replaced with "Boards" link
 
+### Phase 1 — Search & Filters
+- Backend: Server-side search via regex on `title`, `description`, `prompt`, `tags` (case-insensitive)
+- Backend: Server-side category filter via `?category=` query param
+- Backend: Server-side sort via `?sort=` — options: `newest` (default), `oldest`, `popular` (most liked), `most_saved` (aggregation on Board collection)
+- Backend: `GET /api/content/categories` — returns distinct categories with counts via aggregation
+- Backend: MongoDB indexes added — `category`, `createdAt` desc, `likesCount` desc
+- Backend: Fixed `/content/ping` route ordering (moved before `/:id` to avoid collision)
+- Frontend: Debounced search input (400ms) — server-side filtering, no client-side filter/sort
+- Frontend: URL-based filter state via `useSearchParams` — `/feed?q=...&category=...&sort=...` persisted and shareable
+- Frontend: Categories fetched from dedicated endpoint on mount (not derived from loaded content)
+- Frontend: Active filter pills with "Clear Filters" button in toolbar
+- Frontend: Searching indicator (spinning Loader2) during server-side search
+- Frontend: Navbar search bar connected to Feed via URL params (Enter navigates to `/feed?q=...`)
+- Frontend: FeedToolbar updated with "Most Saved" sort option
+
 ### Auth Architecture (as of latest commit)
 - `AuthProvider` wraps `<App />` in `main.jsx` — single source of truth
 - `LoginPage` and `OAuthSuccess` call `AuthContext.login()` (no direct localStorage writes)
@@ -129,7 +144,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 ## Database Schema Summary
 
 - **User:** name, email, passwordHash, role (user/admin), provider (local/google), googleId, avatar
-- **Content:** type, mediaUrl, mediaPublicId, title, description, category, prompt, tags[], uploadedBy (ref User), likesCount, sharesCount
+- **Content:** type, mediaUrl, mediaPublicId, title, description, category, prompt, tags[], uploadedBy (ref User), likesCount, sharesCount — indexes: `category`, `createdAt` desc, `likesCount` desc
 - **Board:** owner (ref User), name, description, savedContent[] (ref Content), timestamps, unique(owner, name) index — fully implemented
 - **Like:** user (ref User), content (ref Content), unique compound index — fully implemented
 
@@ -140,7 +155,8 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `GET /api/auth/google` — Google OAuth redirect
 - `GET /api/auth/google/callback` — Google OAuth callback, redirects with token
 - `POST /api/content` — create content (auth + multer upload)
-- `GET /api/content` — list content (public, optional auth for guest limits)
+- `GET /api/content` — list content (public, optional auth for guest limits) — supports `?search=`, `?category=`, `?sort=newest|oldest|popular|most_saved`, `?page=`, `?limit=`
+- `GET /api/content/categories` — distinct categories with prompt counts
 - `GET /api/content/:id` — get single content
 - `DELETE /api/content/:id` — delete content (auth required)
 - `POST /api/likes/:contentId` — toggle like/unlike (auth required), returns `{ liked, likesCount }`
@@ -156,7 +172,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Current Phase
 
-Phase 1 Complete — Auth + Likes + Boards + Core CRUD operational
+Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Core CRUD operational
 
 ## Next Tasks
 
@@ -223,6 +239,23 @@ Phase 1 Complete — Auth + Likes + Boards + Core CRUD operational
    - Frontend: On successful delete, shows success toast then navigates to `/feed` after 800ms
    - Frontend: Uses `useAuth()` to get current user for ownership check
    - CSS: Added `.prompt-detail__delete-btn` danger-variant styles
+   - Verified clean production build
+- **Search & Filters (server-side):**
+   - Backend: `getAllContent` now accepts `?search=`, `?category=`, `?sort=` query params
+   - Backend: Search uses case-insensitive regex on `title`, `description`, `prompt`, `tags` with special-char escaping
+   - Backend: "Most saved" sort uses aggregation pipeline on Board collection to count saves per content
+   - Backend: New `GET /api/content/categories` endpoint — returns distinct categories with counts
+   - Backend: Added MongoDB indexes on `category`, `createdAt`, `likesCount` for query performance
+   - Backend: Fixed `/content/ping` route ordering (moved before `/:id` route)
+   - Frontend: Feed.jsx rewritten — server-side filtering via API params, removed client-side `filteredPrompts`/`sortedPrompts` useMemos
+   - Frontend: Debounced search input (400ms) via `setTimeout`/`useRef` pattern
+   - Frontend: URL-based filter state via `useSearchParams` — `/feed?q=...&category=...&sort=...` persisted, shareable, back-button friendly
+   - Frontend: Categories fetched from dedicated `/content/categories` endpoint on mount (not derived from loaded content)
+   - Frontend: Active filter pills (search, category, sort) displayed in toolbar with "Clear Filters" button
+   - Frontend: Searching indicator (spinning Loader2 icon) during server-side search
+   - Frontend: Navbar search bar connected to Feed via URL params — Enter navigates to `/feed?q=...`
+   - Frontend: FeedToolbar updated with "Most Saved" sort option
+   - CSS: Added `.feed-toolbar__active-filters`, `.feed-toolbar__active-pill`, `.feed-toolbar__clear-btn` styles
    - Verified clean production build
 
 ## Developer Notes

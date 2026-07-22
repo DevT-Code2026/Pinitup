@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import Navbar from "../components/layout/Navbar";
@@ -18,20 +19,28 @@ import "./Feed.css";
 
 export default function Feed() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get("q") || ""
+  );
+  const debouncedSearchRef = useRef(searchParams.get("q") || "");
+  const debounceTimer = useRef(null);
+
+  const [activeCategory, setActiveCategory] = useState(
+    () => searchParams.get("category") || "All"
+  );
+  const [sortBy, setSortBy] = useState(
+    () => searchParams.get("sort") || "newest"
+  );
+
+  const [categories, setCategories] = useState([]);
 
   const [prompts, setPrompts] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
+  const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
   const [error, setError] = useState("");
-
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const [activeCategory, setActiveCategory] = useState("All");
-
-  const [sortBy, setSortBy] = useState("newest");
 
   const [likedIds, setLikedIds] = useState(() => new Set());
   const [savedIds, setSavedIds] = useState(() => new Set());
@@ -39,58 +48,96 @@ export default function Feed() {
   const [saveToBoardContentId, setSaveToBoardContentId] = useState(null);
   const [toast, setToast] = useState(null);
 
+  const isInitialLoad = useRef(true);
+
+  // Sync URL → local state on mount / back-nav
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    const cat = searchParams.get("category") || "All";
+    const sort = searchParams.get("sort") || "newest";
+
+    setSearchQuery(q);
+    setActiveCategory(cat);
+    setSortBy(sort);
+    debouncedSearchRef.current = q;
+  }, [searchParams]);
+
+  // Debounce search input (400ms)
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(() => {
+      debouncedSearchRef.current = searchQuery;
+      const trimmed = searchQuery.trim();
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (trimmed) next.set("q", trimmed);
+        else next.delete("q");
+        return next, { replace: true };
+      });
+    }, 400);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchQuery, setSearchParams]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    api
+      .get("/content/categories")
+      .then((res) => setCategories(res.data.categories || []))
+      .catch(() => {});
+  }, []);
+
+  // Fetch feed when server-side params change
   const fetchFeed = useCallback(
     async (showRefresh = false) => {
       try {
         setError("");
+        if (isInitialLoad.current) setLoading(true);
+        else if (showRefresh) setRefreshing(true);
+        else setSearching(true);
 
-        if (showRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
+        const q = debouncedSearchRef.current;
+        const params = { limit: 200 };
+        if (q) params.search = q;
+        if (activeCategory && activeCategory !== "All") params.category = activeCategory;
+        if (sortBy) params.sort = sortBy;
 
-        // No dedicated feed endpoint — reuses the same GET /content the
-        // Dashboard already calls, just with a higher limit so there's a
-        // meaningful set of prompts to filter/search/sort client-side.
-        const res = await api.get("/content", {
-          params: { limit: 50 },
-        });
+        const res = await api.get("/content", { params });
 
-        setPrompts(
-          Array.isArray(res.data.content)
-            ? res.data.content
-            : []
-        );
+        const content = Array.isArray(res.data.content) ? res.data.content : [];
+        setPrompts(content);
 
         setLikedIds(() => {
           const ids = new Set();
-          (res.data.content || []).forEach((item) => {
+          content.forEach((item) => {
             if (item.isLiked) ids.add(item._id);
           });
           return ids;
         });
       } catch (err) {
         console.error(err);
-
-        setError(
-          err.response?.data?.message ||
-            "Unable to load the feed."
-        );
+        setError(err.response?.data?.message || "Unable to load the feed.");
       } finally {
         setLoading(false);
         setRefreshing(false);
+        setSearching(false);
+        isInitialLoad.current = false;
       }
     },
-    []
+    [activeCategory, sortBy]
   );
 
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
 
+  // Fetch saved IDs on mount
   useEffect(() => {
-    api.get("/boards/saved-ids")
+    api
+      .get("/boards/saved-ids")
       .then((res) => setSavedIds(new Set(res.data.savedIds || [])))
       .catch(() => {});
   }, []);
@@ -112,109 +159,71 @@ export default function Feed() {
     );
   }, []);
 
-  const categories = useMemo(() => {
-    const unique = new Set(
-      prompts
-        .map((p) => p.category)
-        .filter(Boolean)
-    );
+  const categoryNames = ["All", ...categories.map((c) => c.name)];
 
-    return ["All", ...unique];
-  }, [prompts]);
+  const handleCategoryChange = useCallback(
+    (cat) => {
+      setActiveCategory(cat);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (cat && cat !== "All") next.set("category", cat);
+        else next.delete("category");
+        return next, { replace: true };
+      });
+    },
+    [setSearchParams]
+  );
 
-  const filteredPrompts = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+  const handleSortChange = useCallback(
+    (sort) => {
+      setSortBy(sort);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (sort && sort !== "newest") next.set("sort", sort);
+        else next.delete("sort");
+        return next, { replace: true };
+      });
+    },
+    [setSearchParams]
+  );
 
-    return prompts.filter((prompt) => {
-      const matchesCategory =
-        activeCategory === "All" ||
-        prompt.category === activeCategory;
-
-      if (!matchesCategory) return false;
-
-      if (!query) return true;
-
-      const haystack = [
-        prompt.title,
-        prompt.description,
-        prompt.prompt,
-        ...(Array.isArray(prompt.tags) ? prompt.tags : []),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(query);
-    });
-  }, [prompts, searchQuery, activeCategory]);
-
-  const sortedPrompts = useMemo(() => {
-    const list = [...filteredPrompts];
-
-    if (sortBy === "oldest") {
-      return list.sort(
-        (a, b) =>
-          new Date(a.createdAt || 0) -
-          new Date(b.createdAt || 0)
-      );
-    }
-
-    if (sortBy === "popular") {
-      return list.sort(
-        (a, b) =>
-          (b.likesCount || 0) - (a.likesCount || 0)
-      );
-    }
-
-    // "newest" (default)
-    return list.sort(
-      (a, b) =>
-        new Date(b.createdAt || 0) -
-        new Date(a.createdAt || 0)
-    );
-  }, [filteredPrompts, sortBy]);
-
-  const hasAnyPrompts = prompts.length > 0;
-
-  const hasResults = sortedPrompts.length > 0;
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setActiveCategory("All");
+    setSortBy("newest");
+    debouncedSearchRef.current = "";
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
 
   const isFiltering =
-    searchQuery.trim().length > 0 || activeCategory !== "All";
+    searchParams.get("q")?.trim().length > 0 ||
+    (activeCategory && activeCategory !== "All") ||
+    (sortBy && sortBy !== "newest");
 
   let feedContent;
 
   if (loading) {
     feedContent = <FeedSkeleton />;
   } else if (error) {
-    feedContent = (
-      <ErrorFeed
-        message={error}
-        onRetry={() => fetchFeed()}
+    feedContent = <ErrorFeed message={error} onRetry={() => fetchFeed()} />;
+  } else if (!prompts.length) {
+    feedContent = isFiltering ? (
+      <EmptyFeed
+        title="No matching prompts"
+        description="Try a different search term or category."
+        actionLabel="Clear Filters"
+        onAction={handleClearFilters}
       />
-    );
-  } else if (!hasAnyPrompts) {
-    feedContent = (
+    ) : (
       <EmptyFeed
         title="No prompts yet"
         description="Be the first to upload a prompt to the Pinitup feed."
       />
     );
-  } else if (!hasResults) {
-    feedContent = (
-      <EmptyFeed
-        title="No matching prompts"
-        description="Try a different search term or category."
-        actionLabel="Clear Filters"
-        onAction={() => {
-          setSearchQuery("");
-          setActiveCategory("All");
-        }}
-      />
-    );
   } else {
     feedContent = (
       <PromptGrid
-        prompts={sortedPrompts}
+        prompts={prompts}
         likedIds={likedIds}
         savedIds={savedIds}
         onToggleLike={handleToggleLike}
@@ -225,14 +234,9 @@ export default function Feed() {
 
   return (
     <div className="feed-page">
-      <Navbar
-        onMenuClick={() => setSidebarOpen(true)}
-      />
+      <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <motion.main
         className="feed-main"
@@ -243,15 +247,17 @@ export default function Feed() {
           <FeedToolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            categories={categories}
+            categories={categoryNames}
             activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
+            onCategoryChange={handleCategoryChange}
             sortBy={sortBy}
-            onSortChange={setSortBy}
-            resultCount={sortedPrompts.length}
+            onSortChange={handleSortChange}
+            resultCount={prompts.length}
             isFiltering={isFiltering}
             isRefreshing={refreshing}
+            isSearching={searching}
             onRefresh={() => fetchFeed(true)}
+            onClearFilters={handleClearFilters}
           />
 
           {feedContent}

@@ -17,4 +17,8 @@ const contentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+contentSchema.index({ category: 1 });
+contentSchema.index({ createdAt: -1 });
+contentSchema.index({ likesCount: -1 });
+
 export default mongoose.model("Content", contentSchema);

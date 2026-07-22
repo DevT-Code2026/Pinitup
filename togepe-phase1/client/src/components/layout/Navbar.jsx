@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -6,7 +7,7 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import UserMenu from "./UserMenu.jsx";
 
 const navItems = [
@@ -27,6 +28,19 @@ const navItems = [
 export default function Navbar({
   onMenuClick,
 }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [navSearch, setNavSearch] = useState(
+    () => searchParams.get("q") || ""
+  );
+
+  const handleNavSearchKeyDown = (e) => {
+    if (e.key === "Enter" && !e.nativeEvent?.isComposing) {
+      const q = navSearch.trim();
+      if (q) navigate(`/feed?q=${encodeURIComponent(q)}`);
+      else navigate("/feed");
+    }
+  };
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -191,6 +205,9 @@ export default function Navbar({
 
             <input
               placeholder="Search prompts..."
+              value={navSearch}
+              onChange={(e) => setNavSearch(e.target.value)}
+              onKeyDown={handleNavSearchKeyDown}
               style={{
                 flex: 1,
                 background: "transparent",

@@ -4,12 +4,14 @@ import {
   X,
   ArrowUpDown,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
   { value: "popular", label: "Most Liked" },
+  { value: "most_saved", label: "Most Saved" },
 ];
 
 export default function FeedToolbar({
@@ -23,8 +25,14 @@ export default function FeedToolbar({
   resultCount = 0,
   isFiltering = false,
   isRefreshing = false,
+  isSearching = false,
   onRefresh,
+  onClearFilters,
 }) {
+  const activeSort = SORT_OPTIONS.find((o) => o.value === sortBy);
+  const showActiveFilters =
+    isFiltering && typeof onClearFilters === "function";
+
   return (
     <motion.div
       className="feed-toolbar"
@@ -34,14 +42,19 @@ export default function FeedToolbar({
     >
       <div className="feed-toolbar__top">
         <div className="feed-toolbar__search">
-          <Search size={18} className="feed-toolbar__search-icon" />
+          {isSearching ? (
+            <Loader2
+              size={18}
+              className="feed-toolbar__search-icon feed-toolbar__spin"
+            />
+          ) : (
+            <Search size={18} className="feed-toolbar__search-icon" />
+          )}
 
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) =>
-              onSearchChange?.(e.target.value)
-            }
+            onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Search prompts, tags, or descriptions..."
             className="feed-toolbar__search-input"
             aria-label="Search prompts"
@@ -60,24 +73,16 @@ export default function FeedToolbar({
         </div>
 
         <div className="feed-toolbar__sort">
-          <ArrowUpDown
-            size={16}
-            className="feed-toolbar__sort-icon"
-          />
+          <ArrowUpDown size={16} className="feed-toolbar__sort-icon" />
 
           <select
             value={sortBy}
-            onChange={(e) =>
-              onSortChange?.(e.target.value)
-            }
+            onChange={(e) => onSortChange?.(e.target.value)}
             className="feed-toolbar__sort-select"
             aria-label="Sort prompts"
           >
             {SORT_OPTIONS.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-              >
+              <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
@@ -94,13 +99,39 @@ export default function FeedToolbar({
           >
             <RefreshCw
               size={18}
-              className={
-                isRefreshing ? "feed-toolbar__spin" : ""
-              }
+              className={isRefreshing ? "feed-toolbar__spin" : ""}
             />
           </button>
         )}
       </div>
+
+      {showActiveFilters && (
+        <div className="feed-toolbar__active-filters">
+          {searchQuery && (
+            <span className="feed-toolbar__active-pill">
+              Search: &ldquo;{searchQuery}&rdquo;
+            </span>
+          )}
+          {activeCategory && activeCategory !== "All" && (
+            <span className="feed-toolbar__active-pill">
+              Category: {activeCategory}
+            </span>
+          )}
+          {sortBy && sortBy !== "newest" && activeSort && (
+            <span className="feed-toolbar__active-pill">
+              Sort: {activeSort.label}
+            </span>
+          )}
+          <button
+            type="button"
+            className="feed-toolbar__clear-btn"
+            onClick={onClearFilters}
+          >
+            <X size={14} />
+            Clear Filters
+          </button>
+        </div>
+      )}
 
       {categories.length > 0 && (
         <div

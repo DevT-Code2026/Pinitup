@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Content from "../models/Content.js";
+import Board from "../models/Board.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
 
 import Like from "../models/Like.js";
@@ -9,8 +10,9 @@ const GUEST_CONTENT_LIMIT = 5;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 
-// Attaches an `isLiked` boolean to each content item for the given user.
-// When userId is null (guest), every item gets isLiked: false.
+const escapeRegex = (str) =>
+  str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const attachLikedStatus = async (items, userId) => {
   if (!userId || !items.length) {
     return items.map((item) => ({ ...item, isLiked: false }));
@@ -33,8 +35,6 @@ const attachLikedStatus = async (items, userId) => {
   }));
 };
 
-// Parses a comma-separated or JSON-array tags field from a multipart form
-// body into a clean array of trimmed, non-empty strings.
 const parseTags = (rawTags) => {
   if (!rawTags) return [];
   if (Array.isArray(rawTags)) {
@@ -54,11 +54,139 @@ const parseTags = (rawTags) => {
     .filter(Boolean);
 };
 
+// GET /api/content/categories
+// Public. Returns distinct categories with prompt counts.
+export const getCategories = async (req, res) => {
+  try {
+    const categories = await Content.aggregate([
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    return res.status(200).json({
+      categories: categories.map((c) => ({
+        name: c._id,
+        count: c.count,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch categories", error: error.message });
+  }
+};
+
+// GET /api/content?page=1&limit=20&search=...&category=...&sort=newest|oldest|popular|most_saved
+// Public. Guests are capped at GUEST_CONTENT_LIMIT items.
+export const getAllContent = async (req, res) => {
+  try {
+    const isGuest = !req.user?.id;
+
+    let page = parseInt(req.query.page, 10);
+    let limit = parseInt(req.query.limit, 10);
+
+    if (!Number.isInteger(page) || page < 1) page = 1;
+    if (!Number.isInteger(limit) || limit < 1) limit = DEFAULT_PAGE_SIZE;
+    limit = Math.min(limit, MAX_PAGE_SIZE);
+
+    const effectiveLimit = isGuest ? Math.min(limit, GUEST_CONTENT_LIMIT) : limit;
+    const skip = isGuest ? 0 : (page - 1) * limit;
+
+    const { search, category, sort } = req.query;
+
+    const where = {};
+    if (category && category !== "All") {
+      where.category = category;
+    }
+    if (search && search.trim()) {
+      const escaped = escapeRegex(search.trim());
+      const regex = new RegExp(escaped, "i");
+      where.$or = [
+        { title: regex },
+        { description: regex },
+        { prompt: regex },
+        { tags: regex },
+      ];
+    }
+
+    let items;
+    let total;
+
+    if (sort === "most_saved") {
+      const ids = await Content.distinct("_id", where);
+      if (!ids.length) {
+        return res.status(200).json({
+          content: [],
+          guestLimited: isGuest,
+          pagination: { total: 0, page: 1, limit: effectiveLimit },
+        });
+      }
+
+      const savedCounts = await Board.aggregate([
+        { $unwind: "$savedContent" },
+        { $match: { savedContent: { $in: ids } } },
+        { $group: { _id: "$savedContent", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]);
+
+      const countMap = new Map(savedCounts.map((d) => [String(d._id), d.count]));
+      const sortedIds = [...ids].sort((a, b) => {
+        const ca = countMap.get(String(a)) || 0;
+        const cb = countMap.get(String(b)) || 0;
+        return cb - ca;
+      });
+
+      total = sortedIds.length;
+      const pageIds = sortedIds.slice(skip, skip + effectiveLimit);
+
+      if (!pageIds.length) {
+        return res.status(200).json({
+          content: [],
+          guestLimited: isGuest,
+          pagination: { total, page, limit: effectiveLimit },
+        });
+      }
+
+      const docs = await Content.find({ _id: { $in: pageIds } })
+        .populate("uploadedBy", "name")
+        .lean();
+
+      const orderMap = new Map(pageIds.map((id, i) => [String(id), i]));
+      items = docs
+        .map((d) => ({ ...d, savedCount: countMap.get(String(d._id)) || 0 }))
+        .sort((a, b) => orderMap.get(String(a._id)) - orderMap.get(String(b._id)));
+    } else {
+      let sortObj = { createdAt: -1 };
+      if (sort === "oldest") sortObj = { createdAt: 1 };
+      else if (sort === "popular") sortObj = { likesCount: -1 };
+
+      const [found, countResult] = await Promise.all([
+        Content.find(where)
+          .sort(sortObj)
+          .skip(skip)
+          .limit(effectiveLimit)
+          .populate("uploadedBy", "name")
+          .lean(),
+        isGuest ? Promise.resolve(GUEST_CONTENT_LIMIT) : Content.countDocuments(where),
+      ]);
+
+      items = found;
+      total = countResult;
+    }
+
+    const enriched = await attachLikedStatus(items, req.user?.id || null);
+
+    return res.status(200).json({
+      content: enriched,
+      guestLimited: isGuest,
+      pagination: isGuest
+        ? { total: Math.min(total, GUEST_CONTENT_LIMIT), page: 1, limit: effectiveLimit }
+        : { total, page, limit },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch content", error: error.message });
+  }
+};
+
 // POST /api/content
-// Expects: multipart/form-data — file field "media", plus body fields
-// "prompt", "type" ("image"|"video"), optional "tags".
-// Requires `protect` middleware upstream so req.user.id is available
-// (wiring happens in Phase A4).
 export const createContent = async (req, res) => {
   try {
     const { prompt, type, title, description, category } = req.body;
@@ -116,49 +244,7 @@ export const createContent = async (req, res) => {
   }
 };
 
-// GET /api/content?page=1&limit=20
-// Public. Guests (no req.user, i.e. no valid JWT) are capped at the first
-// GUEST_CONTENT_LIMIT items regardless of requested page/limit.
-export const getAllContent = async (req, res) => {
-  try {
-    const isGuest = !req.user?.id;
-
-    let page = parseInt(req.query.page, 10);
-    let limit = parseInt(req.query.limit, 10);
-
-    if (!Number.isInteger(page) || page < 1) page = 1;
-    if (!Number.isInteger(limit) || limit < 1) limit = DEFAULT_PAGE_SIZE;
-    limit = Math.min(limit, MAX_PAGE_SIZE);
-
-    const effectiveLimit = isGuest ? Math.min(limit, GUEST_CONTENT_LIMIT) : limit;
-    const skip = isGuest ? 0 : (page - 1) * limit;
-
-    const [items, total] = await Promise.all([
-      Content.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(effectiveLimit)
-        .populate("uploadedBy", "name")
-        .lean(),
-      isGuest ? Promise.resolve(GUEST_CONTENT_LIMIT) : Content.countDocuments(),
-    ]);
-
-    const enriched = await attachLikedStatus(items, req.user?.id || null);
-
-    return res.status(200).json({
-      content: enriched,
-      guestLimited: isGuest,
-      pagination: isGuest
-        ? { total: Math.min(total, GUEST_CONTENT_LIMIT), page: 1, limit: effectiveLimit }
-        : { total, page, limit },
-    });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch content", error: error.message });
-  }
-};
-
 // GET /api/content/:id
-// Public.
 export const getContentById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -182,9 +268,6 @@ export const getContentById = async (req, res) => {
 };
 
 // DELETE /api/content/:id
-// Requires `protect` + `requireAdmin` middleware upstream (wiring happens
-// in Phase A4). Removes the Cloudinary asset alongside the DB doc so no
-// orphaned files are left behind.
 export const deleteContent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -203,8 +286,6 @@ export const deleteContent = async (req, res) => {
       try {
         await deleteFromCloudinary(content.mediaPublicId, content.type);
       } catch (cloudinaryError) {
-        // Log and continue — a failed remote cleanup shouldn't block removing
-        // the DB record, but it's worth surfacing for manual follow-up.
         console.error(`Failed to delete Cloudinary asset ${content.mediaPublicId}:`, cloudinaryError.message);
       }
     }

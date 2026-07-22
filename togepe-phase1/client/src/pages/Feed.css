@@ -201,6 +201,46 @@
   color: #ffffff;
 }
 
+/* Active filter pills */
+.feed-toolbar__active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.feed-toolbar__active-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.feed-toolbar__clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid #e7ebf3;
+  border-radius: 999px;
+  background: #f6f8fc;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.feed-toolbar__clear-btn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
 .feed-toolbar__meta {
   display: flex;
   align-items: center;
