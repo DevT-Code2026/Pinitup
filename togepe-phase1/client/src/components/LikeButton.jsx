@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -12,13 +12,16 @@ export default function LikeButton({
   size = "default",
 }) {
   const navigate = useNavigate();
+  const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
 
   const handleClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
 
     // Unauthenticated visitors get redirected to login.
     const token = localStorage.getItem("token");
@@ -31,8 +34,6 @@ export default function LikeButton({
     const nextLiked = !liked;
     const nextCount = nextLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
     onToggle?.(contentId, nextLiked, nextCount);
-
-    setBusy(true);
     try {
       const res = await api.post(`/likes/${contentId}`);
       // Server response is authoritative — reconcile if it differs.
@@ -46,6 +47,7 @@ export default function LikeButton({
       // Revert optimistic update on failure.
       onToggle?.(contentId, liked, likesCount);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };

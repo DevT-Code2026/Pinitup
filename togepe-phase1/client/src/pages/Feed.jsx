@@ -9,6 +9,8 @@ import PromptGrid from "../components/feed/PromptGrid";
 import FeedSkeleton from "../components/feed/FeedSkeleton";
 import EmptyFeed from "../components/feed/EmptyFeed";
 import ErrorFeed from "../components/feed/ErrorFeed";
+import SaveToBoardModal from "../components/SaveToBoardModal";
+import Toast from "../components/Toast";
 
 import api from "../services/api";
 
@@ -32,6 +34,10 @@ export default function Feed() {
   const [sortBy, setSortBy] = useState("newest");
 
   const [likedIds, setLikedIds] = useState(() => new Set());
+  const [savedIds, setSavedIds] = useState(() => new Set());
+
+  const [saveToBoardContentId, setSaveToBoardContentId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const fetchFeed = useCallback(
     async (showRefresh = false) => {
@@ -82,6 +88,12 @@ export default function Feed() {
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
+
+  useEffect(() => {
+    api.get("/boards/saved-ids")
+      .then((res) => setSavedIds(new Set(res.data.savedIds || [])))
+      .catch(() => {});
+  }, []);
 
   const handleToggleLike = useCallback((contentId, nextLiked, nextCount) => {
     setLikedIds((prev) => {
@@ -204,7 +216,9 @@ export default function Feed() {
       <PromptGrid
         prompts={sortedPrompts}
         likedIds={likedIds}
+        savedIds={savedIds}
         onToggleLike={handleToggleLike}
+        onSave={setSaveToBoardContentId}
       />
     );
   }
@@ -243,6 +257,30 @@ export default function Feed() {
           {feedContent}
         </div>
       </motion.main>
+
+      <SaveToBoardModal
+        open={Boolean(saveToBoardContentId)}
+        contentId={saveToBoardContentId}
+        onClose={() => setSaveToBoardContentId(null)}
+        onSaved={(id, isSaved) => {
+          setSavedIds((prev) => {
+            const next = new Set(prev);
+            if (isSaved) next.add(id);
+            else next.delete(id);
+            return next;
+          });
+          setToast({
+            message: isSaved ? "Prompt saved to board" : "Prompt removed from board",
+            type: "success",
+          });
+        }}
+      />
+
+      <Toast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
     </div>
   );
 }

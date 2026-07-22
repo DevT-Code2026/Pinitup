@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CalendarDays, Tag, ArrowRight } from "lucide-react";
+import { CalendarDays, Tag, ArrowRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import LikeButton from "../LikeButton.jsx";
 
@@ -9,7 +9,9 @@ export default function PromptCard({
   href,
   onClick,
   liked = false,
+  saved = false,
   onToggleLike,
+  onSave,
 }) {
   const formatDate = (date) => {
     if (!date) return "Recently";
@@ -87,6 +89,21 @@ export default function PromptCard({
             onToggle={onToggleLike}
             size="small"
           />
+          {onSave && (
+            <button
+              type="button"
+              className={`save-button${saved ? " save-button--active" : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSave(prompt._id);
+              }}
+              aria-label="Save to board"
+            >
+              {saved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+              Save
+            </button>
+          )}
         </div>
 
         {isInteractive && (

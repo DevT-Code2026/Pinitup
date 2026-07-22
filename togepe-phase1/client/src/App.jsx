@@ -8,6 +8,8 @@ import AddPromptPage from "./pages/AddPromptPage.jsx";
 import Dashboard from "./pages/Dashboard";
 import Feed from "./pages/Feed";
 import PromptDetail from "./pages/PromptDetail";
+import Boards from "./pages/Boards";
+import BoardDetail from "./pages/BoardDetail";
 
 function App() {
   return (
@@ -46,6 +48,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <PromptDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/boards"
+            element={
+              <ProtectedRoute>
+                <Boards />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/boards/:id"
+            element={
+              <ProtectedRoute>
+                <BoardDetail />
               </ProtectedRoute>
             }
           />

@@ -28,9 +28,9 @@ const menuItems = [
     path: "/add-prompt",
   },
   {
-    title: "Categories",
+    title: "Boards",
     icon: FolderKanban,
-    path: "/categories",
+    path: "/boards",
   },
   {
     title: "Settings",

@@ -344,6 +344,31 @@
 }
 
 /* ==========================
+   Delete Button
+========================== */
+
+.prompt-detail__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.prompt-detail__delete-btn:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+/* ==========================
    Responsive
 ========================== */
 
