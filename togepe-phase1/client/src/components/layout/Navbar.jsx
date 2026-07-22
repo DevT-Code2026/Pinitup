@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import UserMenu from "./UserMenu.jsx";
 
 const navItems = [
   {
@@ -247,20 +248,7 @@ export default function Navbar({
             </motion.button>
           </NavLink>
 
-          <motion.img
-            whileHover={{
-              scale: 1.08,
-            }}
-            src="https://ui-avatars.com/api/?name=Pinitup&background=7C3AED&color=fff"
-            alt="Avatar"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              border: "2px solid #7C3AED",
-              objectFit: "cover",
-            }}
-          />
+          <UserMenu />
         </div>
       </div>
     </motion.header>

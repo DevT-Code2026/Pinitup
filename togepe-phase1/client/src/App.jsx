@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OAuthSuccess from "./pages/OAuthSuccess.jsx";
 import AddPromptPage from "./pages/AddPromptPage.jsx";
@@ -16,10 +17,39 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth-success" element={<OAuthSuccess />} />
-          <Route path="/add-prompt" element={<AddPromptPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/prompt/:id" element={<PromptDetail />} />
+          <Route
+            path="/add-prompt"
+            element={
+              <ProtectedRoute>
+                <AddPromptPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feed"
+            element={
+              <ProtectedRoute>
+                <Feed />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prompt/:id"
+            element={
+              <ProtectedRoute>
+                <PromptDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </ErrorBoundary>
     </BrowserRouter>

@@ -1,42 +1,39 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 // Landing page for the backend's redirect after a successful Google login:
 // {CLIENT_URL}/oauth-success?token=<jwt>
-// Stores the token exactly the way LoginPage's email/password flow does,
-// then sends the user into the app.
+// Passes the token through AuthContext so all components see the auth state.
 function OAuthSuccess() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
 
     if (token) {
-      localStorage.setItem("token", token);
+      let user = null;
 
-      // Decode the JWT payload to extract user info (id, role, name, email)
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            id: payload.id,
-            name: payload.name,
-            email: payload.email,
-            role: payload.role,
-          })
-        );
+        user = {
+          id: payload.id,
+          name: payload.name,
+          email: payload.email,
+          role: payload.role,
+        };
       } catch {
-        // If decoding fails, user info simply won't be in localStorage;
-        // Dashboard will fall back to "Creator" as the display name.
+        // If decoding fails, user info will be null — AuthContext handles this.
       }
 
+      login(token, user);
       navigate("/dashboard", { replace: true });
     } else {
       navigate("/login", { replace: true });
     }
-  }, [navigate]);
+  }, [login, navigate]);
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import Navbar from "../components/layout/Navbar";
@@ -19,16 +18,6 @@ import api from "../services/api";
 import "./Dashboard.css";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
-  // If there's no token, redirect to login immediately — prevents a
-  // flash of error / empty state before the 401 interceptor fires.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login", { replace: true });
-    }
-  }, [navigate]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [prompts, setPrompts] = useState([]);

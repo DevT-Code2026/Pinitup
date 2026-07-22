@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../services/api.js";
 import TagInput from "../components/TagInput.jsx";
 import Toast from "../components/Toast.jsx";
@@ -23,7 +22,6 @@ const EMPTY_FORM = {
 };
 
 function AddPromptPage() {
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState(EMPTY_FORM);
@@ -33,17 +31,6 @@ function AddPromptPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [status, setStatus] = useState("idle"); // idle | submitting
   const [toast, setToast] = useState(null); // { message, type }
-
-  // Client-side auth guard: this page needs a logged-in user (createContent
-  // requires req.user.id). Role-based admin-only enforcement is still
-  // deferred server-side per the earlier founder decision, so this just
-  // checks "is anyone logged in," not "is this user an admin."
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
-  }, [navigate]);
 
   useEffect(() => {
     // Revoke the previous object URL when the file changes/unmounts, to
