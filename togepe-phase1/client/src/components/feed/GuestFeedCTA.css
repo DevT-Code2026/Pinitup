@@ -1,0 +1,269 @@
+/* ==========================
+   Guest Feed CTA — Premium
+   ========================== */
+
+/* Full-width dark section */
+.guest-cta {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  padding: 96px 24px;
+  overflow: hidden;
+}
+
+/* Dark gradient background */
+.guest-cta__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, #0f0a1e 0%, #1a1035 30%, #2d1b69 60%, #1a1035 100%);
+  z-index: 0;
+}
+
+/* Centered glassmorphism card */
+.guest-cta__card {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 64px 48px 56px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 8px 40px rgba(0, 0, 0, 0.35),
+    0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Violet glow behind card */
+.guest-cta__glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 520px;
+  height: 280px;
+  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.2) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Lock icon ── */
+
+.guest-cta__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  color: #ffffff;
+  margin-bottom: 32px;
+  box-shadow:
+    0 0 0 8px rgba(139, 92, 246, 0.12),
+    0 4px 24px rgba(139, 92, 246, 0.35);
+}
+
+/* ── Text ── */
+
+.guest-cta__title {
+  position: relative;
+  margin: 0 0 14px;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.guest-cta__subtitle {
+  position: relative;
+  margin: 0 auto 32px;
+  max-width: 460px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.7;
+}
+
+/* ── Feature chips ── */
+
+.guest-cta__chips {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.guest-cta__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.guest-cta__chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.guest-cta__chip svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ── */
+
+.guest-cta__actions {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.guest-cta__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 28px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  border: none;
+}
+
+/* Primary — Google */
+.guest-cta__btn--google {
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+
+.guest-cta__btn--google:hover {
+  box-shadow: 0 8px 32px rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.guest-cta__btn--google:active {
+  transform: translateY(0);
+}
+
+/* Secondary — glass */
+.guest-cta__btn--secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.guest-cta__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.guest-cta__btn--secondary:active {
+  transform: translateY(0);
+}
+
+/* ── Footer note ── */
+
+.guest-cta__note {
+  position: relative;
+  margin: 24px 0 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ==========================
+   Responsive
+   ========================== */
+
+@media (max-width: 768px) {
+  .guest-cta {
+    padding: 72px 16px;
+  }
+
+  .guest-cta__card {
+    padding: 48px 28px 44px;
+    border-radius: 20px;
+  }
+
+  .guest-cta__title {
+    font-size: 1.45rem;
+  }
+
+  .guest-cta__subtitle {
+    font-size: 0.92rem;
+    margin-bottom: 28px;
+  }
+
+  .guest-cta__icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 28px;
+  }
+
+  .guest-cta__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .guest-cta__chips {
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .guest-cta__chip {
+    padding: 6px 13px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .guest-cta {
+    padding: 56px 12px;
+  }
+
+  .guest-cta__card {
+    padding: 40px 20px 36px;
+    border-radius: 18px;
+  }
+
+  .guest-cta__title {
+    font-size: 1.3rem;
+  }
+
+  .guest-cta__actions {
+    max-width: 100%;
+  }
+
+  .guest-cta__btn {
+    padding: 14px 20px;
+    font-size: 0.9rem;
+  }
+}

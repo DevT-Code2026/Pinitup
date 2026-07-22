@@ -38,7 +38,7 @@ export default function TrendingPrompts({
         </div>
 
         <Link
-          to="/feed"
+          to="/"
           className="dashboard-section__link"
         >
           Explore Feed

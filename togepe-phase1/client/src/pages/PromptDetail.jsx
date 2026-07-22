@@ -32,7 +32,7 @@ import "./PromptDetail.css";
 export default function PromptDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -93,12 +93,12 @@ export default function PromptDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (id) {
+    if (id && isAuthenticated) {
       api.get("/boards/saved-ids")
         .then((res) => setIsSaved((res.data.savedIds || []).includes(id)))
         .catch(() => {});
     }
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const formatDate = (date) => {
     if (!date) return "Unknown date";
@@ -129,7 +129,7 @@ export default function PromptDetail() {
       await api.delete(`/content/${prompt._id}`);
       setConfirmDeleteOpen(false);
       setToast({ message: "Prompt deleted", type: "success" });
-      deleteTimerRef.current = setTimeout(() => navigate("/feed"), 800);
+      deleteTimerRef.current = setTimeout(() => navigate("/"), 800);
     } catch (err) {
       setConfirmDeleteOpen(false);
       setToast({
@@ -202,7 +202,7 @@ export default function PromptDetail() {
           incorrect.
         </p>
 
-        <Link to="/feed" className="prompt-detail-state__button">
+        <Link to="/" className="prompt-detail-state__button">
           Back to Feed
         </Link>
       </motion.div>
@@ -285,43 +285,67 @@ export default function PromptDetail() {
           </div>
 
           <div className="prompt-detail__actions">
-            <LikeButton
-              contentId={prompt._id}
-              liked={liked}
-              likesCount={prompt.likesCount || 0}
-              onToggle={handleToggleLike}
-            />
-            <button
-              type="button"
-              className={`save-button${isSaved ? " save-button--active" : ""}`}
-              onClick={() => setSaveToBoardOpen(true)}
-            >
-              {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-              Save to Board
-            </button>
-            <button
-              type="button"
-              className="share-button"
-              onClick={handleShare}
-              disabled={sharing}
-              aria-label="Share prompt"
-            >
-              {sharing ? (
-                <Loader2 size={16} className="share-spinner" />
-              ) : (
-                <Share2 size={16} />
-              )}
-              Share
-            </button>
-            {isOwner && (
-              <button
-                type="button"
-                className="prompt-detail__delete-btn"
-                onClick={() => setConfirmDeleteOpen(true)}
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
+            {isAuthenticated ? (
+              <>
+                <LikeButton
+                  contentId={prompt._id}
+                  liked={liked}
+                  likesCount={prompt.likesCount || 0}
+                  onToggle={handleToggleLike}
+                />
+                <button
+                  type="button"
+                  className={`save-button${isSaved ? " save-button--active" : ""}`}
+                  onClick={() => setSaveToBoardOpen(true)}
+                >
+                  {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                  Save to Board
+                </button>
+                <button
+                  type="button"
+                  className="share-button"
+                  onClick={handleShare}
+                  disabled={sharing}
+                  aria-label="Share prompt"
+                >
+                  {sharing ? (
+                    <Loader2 size={16} className="share-spinner" />
+                  ) : (
+                    <Share2 size={16} />
+                  )}
+                  Share
+                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    className="prompt-detail__delete-btn"
+                    onClick={() => setConfirmDeleteOpen(true)}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem" }}>
+                  {prompt.likesCount || 0} likes
+                </span>
+                <button
+                  type="button"
+                  className="share-button"
+                  onClick={handleShare}
+                  disabled={sharing}
+                  aria-label="Share prompt"
+                >
+                  {sharing ? (
+                    <Loader2 size={16} className="share-spinner" />
+                  ) : (
+                    <Share2 size={16} />
+                  )}
+                  Share
+                </button>
+              </>
             )}
           </div>
 
@@ -377,18 +401,20 @@ export default function PromptDetail() {
         </div>
       </motion.main>
 
-      <SaveToBoardModal
-        open={saveToBoardOpen}
-        contentId={prompt?._id}
-        onClose={() => setSaveToBoardOpen(false)}
-        onSaved={(id, saved) => {
-          setIsSaved(saved);
-          setToast({
-            message: saved ? "Prompt saved to board" : "Prompt removed from board",
-            type: "success",
-          });
-        }}
-      />
+      {isAuthenticated && (
+        <SaveToBoardModal
+          open={saveToBoardOpen}
+          contentId={prompt?._id}
+          onClose={() => setSaveToBoardOpen(false)}
+          onSaved={(id, saved) => {
+            setIsSaved(saved);
+            setToast({
+              message: saved ? "Prompt saved to board" : "Prompt removed from board",
+              type: "success",
+            });
+          }}
+        />
+      )}
 
       <AnimatePresence>
         {confirmDeleteOpen && (

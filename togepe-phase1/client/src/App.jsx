@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminRoute from "./components/AdminRoute.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OAuthSuccess from "./pages/OAuthSuccess.jsx";
 import AddPromptPage from "./pages/AddPromptPage.jsx";
@@ -10,15 +12,20 @@ import Feed from "./pages/Feed";
 import PromptDetail from "./pages/PromptDetail";
 import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
+import AdminPage from "./pages/AdminPage.jsx";
 
 function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Public */}
+          <Route path="/" element={<Feed />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth-success" element={<OAuthSuccess />} />
+          <Route path="/prompt/:id" element={<PromptDetail />} />
+
+          {/* Auth required */}
           <Route
             path="/add-prompt"
             element={
@@ -32,22 +39,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/feed"
-            element={
-              <ProtectedRoute>
-                <Feed />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prompt/:id"
-            element={
-              <ProtectedRoute>
-                <PromptDetail />
               </ProtectedRoute>
             }
           />
@@ -67,7 +58,26 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin only */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ErrorBoundary>
     </BrowserRouter>

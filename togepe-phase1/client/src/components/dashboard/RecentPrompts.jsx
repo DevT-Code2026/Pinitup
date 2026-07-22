@@ -44,7 +44,7 @@ export default function RecentPrompts({
         </div>
 
         <Link
-          to="/feed"
+          to="/"
           className="dashboard-section__link"
         >
           View All

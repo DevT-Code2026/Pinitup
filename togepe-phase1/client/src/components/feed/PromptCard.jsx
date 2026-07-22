@@ -1,193 +1,144 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { CalendarDays, Tag, ArrowRight, Bookmark, BookmarkCheck, Share2 } from "lucide-react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
-import LikeButton from "../LikeButton.jsx";
+import { Heart, Bookmark, Share2, MoreHorizontal } from "lucide-react";
 import sharePrompt from "../../utils/sharePrompt.js";
 
 export default function PromptCard({
   prompt,
   index = 0,
   href,
-  onClick,
   liked = false,
   saved = false,
   onToggleLike,
   onSave,
   onShare,
 }) {
-  const [sharing, setSharing] = useState(false);
-  const formatDate = (date) => {
-    if (!date) return "Recently";
+  const busyRef = useRef(false);
 
-    return new Date(date).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const isInteractive = Boolean(href || onClick);
-
-  const handleKeyDown = (e) => {
-    if (!onClick) return;
-
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick(e);
-    }
-  };
-
-  const handleShare = async (e) => {
+  const handleLike = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (sharing) return;
-    setSharing(true);
-    try {
-      const result = await sharePrompt(prompt);
-      if (result.success && result.method === "clipboard") {
-        onShare?.("Link copied to clipboard!");
-      }
-    } catch {
-      // silent — sharePrompt handles all failures internally
-    } finally {
-      setSharing(false);
+    if (busyRef.current || !onToggleLike) return;
+    busyRef.current = true;
+    onToggleLike(prompt._id || prompt.id);
+    setTimeout(() => {
+      busyRef.current = false;
+    }, 400);
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onSave) onSave(prompt._id || prompt.id);
+  };
+
+  const handleShare = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onShare) {
+      onShare(prompt);
+    } else {
+      sharePrompt({
+        id: prompt._id || prompt.id,
+        title: prompt.title,
+      });
     }
   };
 
-  const cardBody = (
-    <>
+  const cardContent = (
+    <div className="feed-prompt-card">
+      {/* Image */}
       <div className="feed-prompt-card__image-wrapper">
-        {prompt.mediaUrl ? (
+        {(prompt.mediaUrl || prompt.imageUrl) ? (
           <img
-            src={prompt.mediaUrl}
-            alt={prompt.title || "Prompt"}
+            src={prompt.mediaUrl || prompt.imageUrl}
+            alt={prompt.title}
             className="feed-prompt-card__image"
-            loading="lazy"
+            loading={index < 10 ? "eager" : "lazy"}
+            decoding="async"
           />
         ) : (
           <div className="feed-prompt-card__placeholder">
-            <Tag size={28} />
-          </div>
-        )}
-      </div>
-
-      <div className="feed-prompt-card__body">
-        <div className="feed-prompt-card__top">
-          <span className="feed-prompt-card__category">
-            {prompt.category || "General"}
-          </span>
-
-          <span className="feed-prompt-card__date">
-            <CalendarDays size={14} />
-            {formatDate(prompt.createdAt)}
-          </span>
-        </div>
-
-        <h3 className="feed-prompt-card__title">
-          {prompt.title || "Untitled Prompt"}
-        </h3>
-
-        <p className="feed-prompt-card__description">
-          {prompt.description || "No description available."}
-        </p>
-
-        {Array.isArray(prompt.tags) && prompt.tags.length > 0 && (
-          <div className="feed-prompt-card__tags">
-            {prompt.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="feed-prompt-card__tag">
-                #{tag}
-              </span>
-            ))}
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="M21 15l-3.086-3.086a2 2 0 00-2.828 0L6 21" />
+            </svg>
           </div>
         )}
 
-        <div className="feed-prompt-card__like-row">
-          <LikeButton
-            contentId={prompt._id}
-            liked={liked}
-            likesCount={prompt.likesCount || 0}
-            onToggle={onToggleLike}
-            size="small"
-          />
-          {onSave && (
+        {/* Category badge */}
+        {prompt.category && (
+          <span className="feed-prompt-card__badge">{prompt.category}</span>
+        )}
+
+        {/* Hover overlay */}
+        <div className="feed-prompt-card__overlay">
+          <div className="feed-prompt-card__actions">
             <button
-              type="button"
-              className={`save-button${saved ? " save-button--active" : ""}`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onSave(prompt._id);
-              }}
-              aria-label="Save to board"
+              className={`feed-prompt-card__action-btn ${
+                liked ? "feed-prompt-card__action-btn--liked" : ""
+              }`}
+              onClick={handleLike}
+              aria-label={liked ? "Unlike" : "Like"}
             >
-              {saved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-              Save
+              <Heart size={16} fill={liked ? "currentColor" : "none"} />
             </button>
-          )}
-          <button
-            type="button"
-            className="share-button share-button--small"
-            onClick={handleShare}
-            disabled={sharing}
-            aria-label="Share prompt"
-          >
-            <Share2 size={14} />
-          </button>
-        </div>
 
-        {isInteractive && (
-          <div className="feed-prompt-card__footer">
-            <span className="feed-prompt-card__action">
-              View Details
-              <ArrowRight size={16} />
+            <button
+              className={`feed-prompt-card__action-btn ${
+                saved ? "feed-prompt-card__action-btn--saved" : ""
+              }`}
+              onClick={handleSave}
+              aria-label={saved ? "Unsave" : "Save to board"}
+            >
+              <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
+            </button>
+
+            <button
+              className="feed-prompt-card__action-btn feed-prompt-card__action-btn--share"
+              onClick={handleShare}
+              aria-label="Share"
+            >
+              <Share2 size={16} />
+            </button>
+
+            <button
+              className="feed-prompt-card__action-btn"
+              onClick={(e) => e.preventDefault()}
+              aria-label="More options"
+              style={{ marginLeft: "auto" }}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+
+          <h3 className="feed-prompt-card__title-overlay">{prompt.title}</h3>
+
+          <div className="feed-prompt-card__author-row">
+            <div className="feed-prompt-card__author-avatar">
+              {(prompt.uploadedBy?.name || prompt.author || "U").charAt(0).toUpperCase()}
+            </div>
+            <span className="feed-prompt-card__author-name">
+              {prompt.uploadedBy?.name || prompt.author || "Unknown"}
             </span>
           </div>
-        )}
+        </div>
       </div>
-    </>
+    </div>
   );
 
   if (href) {
     return (
-      <motion.article
-        className="feed-prompt-card"
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
+      <Link
+        to={href}
+        className="feed-prompt-card__link"
+        aria-label={prompt.title}
       >
-        <Link to={href} className="feed-prompt-card__link">
-          {cardBody}
-        </Link>
-      </motion.article>
+        {cardContent}
+      </Link>
     );
   }
 
-  if (onClick) {
-    return (
-      <motion.article
-        className="feed-prompt-card feed-prompt-card--clickable"
-        role="button"
-        tabIndex={0}
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
-      >
-        {cardBody}
-      </motion.article>
-    );
-  }
-
-  return (
-    <motion.article
-      className="feed-prompt-card"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-    >
-      {cardBody}
-    </motion.article>
-  );
+  return cardContent;
 }

@@ -48,7 +48,7 @@ export default function WelcomeSection({
           </Link>
 
           <Link
-            to="/feed"
+            to="/"
             className="dashboard-button dashboard-button--secondary"
           >
             <span>Explore Feed</span>

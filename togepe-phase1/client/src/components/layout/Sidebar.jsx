@@ -5,44 +5,31 @@ import {
   PlusSquare,
   FolderKanban,
   Settings,
-  Sparkles,
   ChevronRight,
   X,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
 
-const menuItems = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/dashboard",
-  },
-  {
-    title: "Explore",
-    icon: Compass,
-    path: "/feed",
-  },
-  {
-    title: "Add Prompt",
-    icon: PlusSquare,
-    path: "/add-prompt",
-  },
-  {
-    title: "Boards",
-    icon: FolderKanban,
-    path: "/boards",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    path: "/settings",
-  },
+const baseMenuItems = [
+  { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { title: "Explore", icon: Compass, path: "/" },
+  { title: "Add Prompt", icon: PlusSquare, path: "/add-prompt" },
+  { title: "Boards", icon: FolderKanban, path: "/boards" },
+  { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
-export default function Sidebar({
-  isOpen = true,
-  onClose,
-}) {
+const adminItem = { title: "Admin", icon: Shield, path: "/admin" };
+
+export default function Sidebar({ isOpen = true, onClose }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const menuItems = isAdmin
+    ? [...baseMenuItems.slice(0, 4), adminItem, ...baseMenuItems.slice(4)]
+    : baseMenuItems;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -52,84 +39,77 @@ export default function Sidebar({
           exit={{ x: -40, opacity: 0 }}
           transition={{ duration: 0.25 }}
           style={{
-            width: 270,
-            background: "#17171C",
-            borderRight: "1px solid rgba(255,255,255,0.06)",
+            width: 260,
+            background: "#ffffff",
+            borderRight: "1px solid #E5E7EB",
             minHeight: "100vh",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            padding: 24,
+            padding: 20,
             position: "sticky",
-            top: 0,
+            top: 68,
           }}
         >
           <div>
-            {/* Mobile Close */}
-
             {onClose && (
               <div
                 style={{
                   display: "flex",
                   justifyContent: "flex-end",
-                  marginBottom: 18,
+                  marginBottom: 16,
                 }}
               >
                 <button
                   onClick={onClose}
                   aria-label="Close sidebar"
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    border: "1px solid #2B2B35",
-                    background: "#0B0B0F",
-                    color: "white",
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    border: "1px solid #E5E7EB",
+                    background: "#F9FAFB",
+                    color: "#5F6368",
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
             )}
 
-            {/* Heading */}
-
-            <div
-              style={{
-                marginBottom: 32,
-              }}
-            >
+            <div style={{ marginBottom: 24 }}>
               <div
                 style={{
-                  color: "#777",
-                  fontSize: 12,
+                  color: "#9CA3AF",
+                  fontSize: 11,
                   letterSpacing: 1,
                   textTransform: "uppercase",
-                  marginBottom: 12,
+                  fontWeight: 600,
+                  marginBottom: 8,
                 }}
               >
                 Navigation
               </div>
-
               <div
                 style={{
-                  color: "#fff",
+                  color: "#111111",
                   fontWeight: 700,
-                  fontSize: 22,
+                  fontSize: 18,
                 }}
               >
                 Workspace
               </div>
             </div>
 
-            {/* Links */}
-
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 10,
+                gap: 4,
               }}
             >
               {menuItems.map((item) => {
@@ -144,97 +124,52 @@ export default function Sidebar({
                       alignItems: "center",
                       justifyContent: "space-between",
                       textDecoration: "none",
-                      padding: "14px 16px",
-                      borderRadius: 14,
-                      color: isActive ? "#fff" : "#B8B8C5",
-                      background: isActive
-                        ? "linear-gradient(135deg,#7C3AED,#6D28D9)"
-                        : "transparent",
-                      transition: "0.25s",
+                      padding: "11px 14px",
+                      borderRadius: 10,
+                      color: isActive ? "#111111" : "#5F6368",
+                      background: isActive ? "#F3F4F6" : "transparent",
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: 14,
+                      transition: "background 0.15s, color 0.15s",
                     })}
                   >
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 14,
+                        gap: 12,
                       }}
                     >
-                      <Icon size={20} />
-                      <span
-                        style={{
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.title}
-                      </span>
+                      <Icon size={18} />
+                      <span>{item.title}</span>
                     </div>
-
-                    <ChevronRight size={16} />
+                    <ChevronRight size={14} color="#D1D5DB" />
                   </NavLink>
                 );
               })}
             </div>
           </div>
 
-          {/* Bottom Card */}
-
-          <motion.div
-            whileHover={{
-              scale: 1.02,
-            }}
+          {/* Bottom card — removed dark purple upgrade card for clean white look */}
+          <div
             style={{
-              borderRadius: 18,
-              padding: 20,
-              background:
-                "linear-gradient(145deg,#7C3AED,#5B21B6)",
-              color: "#fff",
+              borderRadius: 12,
+              padding: 16,
+              background: "#F9FAFB",
+              border: "1px solid #E5E7EB",
             }}
           >
-            <Sparkles
-              size={26}
-              style={{
-                marginBottom: 12,
-              }}
-            />
-
-            <h3
-              style={{
-                margin: 0,
-                marginBottom: 8,
-                fontSize: 18,
-              }}
-            >
-              AI Pro
-            </h3>
-
             <p
               style={{
-                color: "rgba(255,255,255,.8)",
-                fontSize: 14,
-                lineHeight: 1.6,
-                marginBottom: 18,
+                margin: 0,
+                fontSize: 13,
+                color: "#767676",
+                lineHeight: 1.5,
               }}
             >
-              Unlock premium prompt collections,
-              analytics and unlimited uploads.
+              Built for creators who think in prompts.
             </p>
-
-            <button
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: 12,
-                border: "none",
-                background: "#fff",
-                color: "#5B21B6",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Upgrade
-            </button>
-          </motion.div>
+          </div>
         </motion.aside>
       )}
     </AnimatePresence>

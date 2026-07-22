@@ -24,7 +24,7 @@ export default function QuickActions({
       title: "Explore Feed",
       description: "Browse prompts shared by the community.",
       icon: Compass,
-      to: "/feed",
+      to: "/",
       variant: "secondary",
     },
     {

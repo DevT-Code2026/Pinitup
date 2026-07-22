@@ -1,292 +1,285 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
-import Navbar from "../components/layout/Navbar";
-import Sidebar from "../components/layout/Sidebar";
-
-import FeedToolbar from "../components/feed/FeedToolbar";
-import PromptGrid from "../components/feed/PromptGrid";
-import FeedSkeleton from "../components/feed/FeedSkeleton";
-import EmptyFeed from "../components/feed/EmptyFeed";
-import ErrorFeed from "../components/feed/ErrorFeed";
-import SaveToBoardModal from "../components/SaveToBoardModal";
-import Toast from "../components/Toast";
-
-import api from "../services/api";
+import Navbar from "../components/layout/Navbar.jsx";
+import PromptGrid from "../components/feed/PromptGrid.jsx";
+import GuestFeedCTA from "../components/feed/GuestFeedCTA.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import api from "../services/api.js";
+import {
+  CATEGORIES,
+  CATEGORY_IMAGES,
+  CATEGORY_COUNTS,
+  DEMO_PROMPTS,
+} from "../data/demoPrompts.js";
 
 import "./Feed.css";
 
+const GUEST_PROMPT_LIMIT = 5;
+const DEBOUNCE_MS = 400;
+const FEED_TARGET_COUNT = 40;
+
 export default function Feed() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const isGuest = !isAuthenticated;
+
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [serverPrompts, setServerPrompts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState(
     () => searchParams.get("q") || ""
   );
-  const debouncedSearchRef = useRef(searchParams.get("q") || "");
-  const debounceTimer = useRef(null);
-
-  const [activeCategory, setActiveCategory] = useState(
-    () => searchParams.get("category") || "All"
-  );
   const [sortBy, setSortBy] = useState(
     () => searchParams.get("sort") || "newest"
   );
-
-  const [categories, setCategories] = useState([]);
-
-  const [prompts, setPrompts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-
-  const [likedIds, setLikedIds] = useState(() => new Set());
-  const [savedIds, setSavedIds] = useState(() => new Set());
-
-  const [saveToBoardContentId, setSaveToBoardContentId] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const isInitialLoad = useRef(true);
-
-  // Sync URL → local state on mount / back-nav
-  useEffect(() => {
-    const q = searchParams.get("q") || "";
-    const cat = searchParams.get("category") || "All";
-    const sort = searchParams.get("sort") || "newest";
-
-    setSearchQuery(q);
-    setActiveCategory(cat);
-    setSortBy(sort);
-    debouncedSearchRef.current = q;
-  }, [searchParams]);
-
-  // Debounce search input (400ms)
-  useEffect(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-    debounceTimer.current = setTimeout(() => {
-      debouncedSearchRef.current = searchQuery;
-      const trimmed = searchQuery.trim();
-      const next = new URLSearchParams(searchParams);
-      if (trimmed) next.set("q", trimmed);
-      else next.delete("q");
-      setSearchParams(next, { replace: true });
-    }, 400);
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, [searchQuery, searchParams, setSearchParams]);
-
-  // Fetch categories on mount
-  useEffect(() => {
-    api
-      .get("/content/categories")
-      .then((res) => setCategories(res.data.categories || []))
-      .catch(() => {});
-  }, []);
-
-  // Fetch feed when server-side params change
-  const fetchFeed = useCallback(
-    async (showRefresh = false) => {
-      try {
-        setError("");
-        if (isInitialLoad.current) setLoading(true);
-        else if (showRefresh) setRefreshing(true);
-        else setSearching(true);
-
-        const q = debouncedSearchRef.current;
-        const params = { limit: 200 };
-        if (q) params.search = q;
-        if (activeCategory && activeCategory !== "All") params.category = activeCategory;
-        if (sortBy) params.sort = sortBy;
-
-        const res = await api.get("/content", { params });
-
-        const content = Array.isArray(res.data.content) ? res.data.content : [];
-        setPrompts(content);
-
-        setLikedIds(() => {
-          const ids = new Set();
-          content.forEach((item) => {
-            if (item.isLiked) ids.add(item._id);
-          });
-          return ids;
-        });
-
-        isInitialLoad.current = false;
-      } catch (err) {
-        console.error(err);
-        setError(err.response?.data?.message || "Unable to load the feed.");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setSearching(false);
-      }
-    },
-    [activeCategory, sortBy]
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => searchParams.get("category") || "All"
   );
 
-  useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+  const debounceRef = useRef(null);
 
-  // Fetch saved IDs on mount
+  /* ── Fetch prompts from API ── */
+  const fetchPrompts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (selectedCategory && selectedCategory !== "All")
+        params.set("category", selectedCategory);
+      params.set("sort", sortBy);
+
+      const { data } = await api.get(`/content?${params.toString()}`);
+      setServerPrompts(Array.isArray(data) ? data : data.content ?? []);
+    } catch (err) {
+      console.error("Failed to load prompts:", err);
+      setError("Could not reach the server. Some prompts may be missing.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, selectedCategory, sortBy]);
+
   useEffect(() => {
-    api
-      .get("/boards/saved-ids")
-      .then((res) => setSavedIds(new Set(res.data.savedIds || [])))
-      .catch(() => {});
+    fetchPrompts();
+  }, [fetchPrompts]);
+
+  /* ── URL sync ── */
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (searchQuery.trim()) next.set("q", searchQuery.trim());
+    if (selectedCategory !== "All") next.set("category", selectedCategory);
+    if (sortBy !== "newest") next.set("sort", sortBy);
+    setSearchParams(next, { replace: true });
+  }, [searchQuery, selectedCategory, sortBy, setSearchParams]);
+
+  /* ── Search debounce ── */
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {}, DEBOUNCE_MS);
   }, []);
 
-  const handleToggleLike = useCallback((contentId, nextLiked, nextCount) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (nextLiked) next.add(contentId);
-      else next.delete(contentId);
-      return next;
-    });
-
-    setPrompts((prev) =>
-      prev.map((p) =>
-        p._id === contentId
-          ? { ...p, likesCount: nextCount, isLiked: nextLiked }
-          : p
-      )
-    );
+  /* ── Category select ── */
+  const handleCategoryChange = useCallback((cat) => {
+    setSelectedCategory(cat);
   }, []);
 
-  const categoryNames = ["All", ...categories.map((c) => c.name)];
+  /* ── Merged prompt list: real prompts always first, demo fills the rest ── */
+  const displayPrompts = useMemo(() => {
+    const realPrompts = Array.isArray(serverPrompts) ? serverPrompts : [];
 
-  const handleCategoryChange = useCallback(
-    (cat) => {
-      setActiveCategory(cat);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (cat && cat !== "All") next.set("category", cat);
-        else next.delete("category");
-        return next;
-      }, { replace: true });
-    },
-    [setSearchParams]
-  );
+    /* When the user is actively searching, don't pad with demo content */
+    const isFiltering =
+      Boolean(searchQuery.trim()) || (selectedCategory && selectedCategory !== "All");
 
-  const handleSortChange = useCallback(
-    (sort) => {
-      setSortBy(sort);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (sort && sort !== "newest") next.set("sort", sort);
-        else next.delete("sort");
-        return next;
-      }, { replace: true });
-    },
-    [setSearchParams]
-  );
+    if (isFiltering || realPrompts.length >= FEED_TARGET_COUNT) {
+      return realPrompts;
+    }
 
-  const handleClearFilters = useCallback(() => {
-    setSearchQuery("");
-    setActiveCategory("All");
-    setSortBy("newest");
-    debouncedSearchRef.current = "";
-    setSearchParams({}, { replace: true });
-  }, [setSearchParams]);
-
-  const isFiltering =
-    searchParams.get("q")?.trim().length > 0 ||
-    (activeCategory && activeCategory !== "All") ||
-    (sortBy && sortBy !== "newest");
-
-  let feedContent;
-
-  if (loading) {
-    feedContent = <FeedSkeleton />;
-  } else if (error) {
-    feedContent = <ErrorFeed message={error} onRetry={() => fetchFeed()} />;
-  } else if (!prompts.length) {
-    feedContent = isFiltering ? (
-      <EmptyFeed
-        title="No matching prompts"
-        description="Try a different search term or category."
-        actionLabel="Clear Filters"
-        onAction={handleClearFilters}
-      />
-    ) : (
-      <EmptyFeed
-        title="No prompts yet"
-        description="Be the first to upload a prompt to the Pinitup feed."
-      />
+    /* Build a set of real prompt titles (lowercased) for dedup */
+    const realTitles = new Set(
+      realPrompts.map((p) => (p.title || "").toLowerCase())
     );
-  } else {
-    feedContent = (
-      <PromptGrid
-        prompts={prompts}
-        likedIds={likedIds}
-        savedIds={savedIds}
-        onToggleLike={handleToggleLike}
-        onSave={setSaveToBoardContentId}
-        onShare={(msg) => setToast({ message: msg, type: "success" })}
-      />
+
+    /* Filter demo prompts to match the active category (if any) and skip
+       any whose title already exists in the real results. */
+    const safeDemo = Array.isArray(DEMO_PROMPTS) ? DEMO_PROMPTS : [];
+    let fillers = safeDemo.filter(
+      (d) => !realTitles.has((d.title || "").toLowerCase())
     );
-  }
+
+    if (selectedCategory && selectedCategory !== "All") {
+      fillers = fillers.filter((d) => d.category === selectedCategory);
+    }
+
+    /* Sort fillers by popularity so the best demo content fills first */
+    fillers.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+    const needed = FEED_TARGET_COUNT - realPrompts.length;
+    const appended = fillers.slice(0, Math.max(0, needed));
+
+    return [...realPrompts, ...appended];
+  }, [serverPrompts, selectedCategory, searchQuery]);
+
+  /* ── Guest limit ── */
+  const visiblePrompts = useMemo(() => {
+    if (!isGuest) return displayPrompts;
+    return displayPrompts.slice(0, GUEST_PROMPT_LIMIT);
+  }, [displayPrompts, isGuest]);
+
+  const showGuestCTA = isGuest && displayPrompts.length >= GUEST_PROMPT_LIMIT;
+
+  /* ── Like/Save handlers (no-ops for demo content) ── */
+  const handleToggleLike = useCallback(() => {}, []);
+  const handleSave = useCallback(() => {}, []);
+  const handleShare = useCallback(() => {}, []);
 
   return (
     <div className="feed-page">
-      <Navbar onMenuClick={() => setSidebarOpen(true)} />
+      <Navbar searchQuery={searchQuery} onSearchChange={handleSearchChange} />
 
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <motion.main
-        className="feed-main"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <div className="feed-main">
+        {/* Header */}
         <div className="feed-container">
-          <FeedToolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            categories={categoryNames}
-            activeCategory={activeCategory}
-            onCategoryChange={handleCategoryChange}
-            sortBy={sortBy}
-            onSortChange={handleSortChange}
-            resultCount={prompts.length}
-            isFiltering={isFiltering}
-            isRefreshing={refreshing}
-            isSearching={searching}
-            onRefresh={() => fetchFeed(true)}
-            onClearFilters={handleClearFilters}
-          />
-
-          {feedContent}
+          <div className="feed-header">
+            <h1 className="feed-header__title">Prompt Board</h1>
+            <p className="feed-header__subtitle">
+              All prompts are unlocked. Scroll forever, like, pin, and share.
+            </p>
+          </div>
         </div>
-      </motion.main>
 
-      <SaveToBoardModal
-        open={Boolean(saveToBoardContentId)}
-        contentId={saveToBoardContentId}
-        onClose={() => setSaveToBoardContentId(null)}
-        onSaved={(id, isSaved) => {
-          setSavedIds((prev) => {
-            const next = new Set(prev);
-            if (isSaved) next.add(id);
-            else next.delete(id);
-            return next;
-          });
-          setToast({
-            message: isSaved ? "Prompt saved to board" : "Prompt removed from board",
-            type: "success",
-          });
-        }}
-      />
+        {/* Category strip — image thumbnails */}
+        <div className="feed-category-strip">
+          <div className="feed-category-strip__scroll">
+            {/* All */}
+            <button
+              type="button"
+              className={`feed-category-strip__thumb ${
+                selectedCategory === "All"
+                  ? "feed-category-strip__thumb--active"
+                  : ""
+              }`}
+              onClick={() => handleCategoryChange("All")}
+              aria-pressed={selectedCategory === "All"}
+            >
+              <img
+                src={CATEGORY_IMAGES.All}
+                alt=""
+                className="feed-category-strip__thumb-bg"
+                loading="lazy"
+              />
+              <span className="feed-category-strip__thumb-label">
+                All ({CATEGORY_COUNTS.All})
+              </span>
+            </button>
 
-      <Toast
-        message={toast?.message}
-        type={toast?.type}
-        onClose={() => setToast(null)}
-      />
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`feed-category-strip__thumb ${
+                  selectedCategory === cat
+                    ? "feed-category-strip__thumb--active"
+                    : ""
+                }`}
+                onClick={() => handleCategoryChange(cat)}
+                aria-pressed={selectedCategory === cat}
+              >
+                <img
+                  src={CATEGORY_IMAGES[cat]}
+                  alt=""
+                  className="feed-category-strip__thumb-bg"
+                  loading="lazy"
+                />
+                <span className="feed-category-strip__thumb-label">
+                  {cat} ({CATEGORY_COUNTS[cat]})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="feed-container">
+          {loading && !(Array.isArray(serverPrompts) && serverPrompts.length) ? (
+            <div className="feed-loading">
+              <div className="feed-loading__chips">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="feed-loading__chip shimmer" />
+                ))}
+              </div>
+              <div className="feed-loading__grid">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="feed-loading__card">
+                    <div
+                      className="feed-loading__image shimmer"
+                      style={{
+                        height: [300, 400, 350, 500, 280, 450][i % 6],
+                      }}
+                    />
+                    <div className="feed-loading__content">
+                      <div className="feed-loading__title shimmer" />
+                      <div className="feed-loading__text shimmer" />
+                      <div className="feed-loading__text feed-loading__text--short shimmer" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : error && !(Array.isArray(serverPrompts) && serverPrompts.length) ? (
+            <div className="feed-error">
+              <div className="feed-error__icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h2 className="feed-error__title">Oops! Something went wrong</h2>
+              <p className="feed-error__message">{error}</p>
+              <button
+                className="feed-error__button"
+                onClick={fetchPrompts}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <>
+              <PromptGrid
+                prompts={visiblePrompts}
+                likedIds={new Set()}
+                savedIds={new Set()}
+                onToggleLike={handleToggleLike}
+                onSave={handleSave}
+                onShare={handleShare}
+              />
+
+              {showGuestCTA && <GuestFeedCTA />}
+
+              {!loading && !error && displayPrompts.length === 0 && (
+                <div className="feed-empty">
+                  <div className="feed-empty__icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                  </div>
+                  <h2 className="feed-empty__title">No prompts found</h2>
+                  <p className="feed-empty__description">
+                    Try adjusting your search or category filter.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

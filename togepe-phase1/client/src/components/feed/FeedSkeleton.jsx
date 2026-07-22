@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 
-const skeletonCards = Array.from({ length: 8 });
+const skeletonCards = Array.from({ length: 12 });
 
-const skeletonChips = Array.from({ length: 5 });
+const skeletonChips = Array.from({ length: 7 });
 
 export default function FeedSkeleton() {
   return (
@@ -21,10 +21,7 @@ export default function FeedSkeleton() {
               className="feed-loading__chip shimmer"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.35,
-                delay: index * 0.05,
-              }}
+              transition={{ duration: 0.35, delay: index * 0.05 }}
             />
           ))}
         </div>
@@ -37,12 +34,12 @@ export default function FeedSkeleton() {
             className="feed-loading__card"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.35,
-              delay: index * 0.05,
-            }}
+            transition={{ duration: 0.35, delay: index * 0.04 }}
           >
-            <div className="feed-loading__image shimmer" />
+            <div
+              className="feed-loading__image shimmer"
+              style={{ height: `${160 + (index % 3) * 60}px` }}
+            />
 
             <div className="feed-loading__content">
               <div className="feed-loading__title shimmer" />

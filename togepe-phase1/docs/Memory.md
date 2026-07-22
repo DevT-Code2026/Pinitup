@@ -52,6 +52,8 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 **Backend:** Node.js, Express.js, MongoDB Atlas, Mongoose, JWT, Passport (Google OAuth), Cloudinary, Multer
 
+**Design:** White minimal PromptPin-inspired theme — white backgrounds, black text, #E5E7EB borders, no shadows on chrome, 18px border radius on cards
+
 **Deployment targets:** Vercel (client), Render (server)
 
 ## Completed Features
@@ -114,23 +116,137 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - CSS: `.share-button` pill-shaped button (green tint on hover, matching existing conventions), `.share-button--small` icon-only variant, `.share-spinner` animation
 - No backend changes — share URL is `{origin}/prompt/{id}` (existing protected route)
 
+### Phase 1 — Pinterest-style UI
+- Feed grid uses CSS `column-count` masonry (5→4→3→2 columns responsive)
+- PromptCard: image-first, floating Like/Save/Share on hover, gradient overlay, category badge, author row
+- Horizontal category strip: sticky, scrollable, frosted-glass, replaces in-toolbar chips
+- FeedToolbar simplified: search + sort + refresh, left/right layout
+- Navbar cleaned: removed bell, removed subtitle, rgba search bar, subtle active nav links
+- PromptDetail: larger image (1.1fr), edge-to-edge layout, cleaner spacing
+- FeedSkeleton: 12 cards with variable heights, masonry grid
+- All existing features preserved (auth, likes, boards, sharing, search, dashboard)
+
+### Phase 1 — Landing Page (Sprint 1)
+- Created `LandingPage.jsx` — full professional landing page with Hero, Features (6 cards), Categories (8 horizontal cards), Workflow (4 steps), Pricing (Free/Pro), FAQ (6 items accordion), CTA block, Footer
+- Created `LandingPage.css` — complete responsive styles (1024px → 768px → 576px breakpoints)
+- Hero section: headline + subtitle + CTA buttons + stats row + masonry preview, background orbs + grid overlay
+- Features: 6-card grid with icons, hover lift animation
+- Categories: horizontal scroll strip with 8 prompt categories, frosted-glass cards
+- Workflow: 4-step process with connector lines
+- Pricing: 2-card comparison (Free vs Pro) with badge, feature list
+- FAQ: 6 items with accordion open/close via `useState`, ChevronDown toggle
+- CTA block: gradient background + grid overlay + final sign-up button
+- Footer: brand tagline, link columns (Product/Company/Legal), social links, copyright
+- All sections use Framer Motion `useInView` scroll-triggered fade-in animations
+- `App.jsx` updated: `/` renders `<LandingPage />` (was `<Navigate to="/login" />`), catch-all now redirects to `/`
+- Nav: "Login" and "Get Started" buttons link to `/login` and `/signup` (signup not yet implemented)
+- Fully self-contained — no backend dependency, no auth checks, no shared layout
+- Verified clean production build (vite build passes)
+
+### Phase 2 — Role-Based Access Control (Sprint 2)
+- **Backend — Google OAuth admin assignment:**
+  - `config/passport.js` — `ADMIN_EMAILS` set: `content@npl.live`, `shylesh@npl.live`, `dev@npl.live`
+  - New Google users with admin emails get `role: "admin"` on creation
+  - Existing users linked via Google with admin emails get auto-promoted on login
+  - Existing local users with admin emails get promoted when linking Google account
+- **Backend — Admin stats API:**
+  - Created `controllers/adminController.js` — `getAdminStats` returns `totalUsers`, `totalPrompts`, `totalBoards`, `recentActivity` (last 5 prompts with uploader name)
+  - Created `routes/adminRoutes.js` — `GET /api/admin/stats` (protected + requireAdmin)
+  - Registered in `server.js` as `/api/admin`
+- **Frontend — AdminRoute component:**
+  - Created `components/AdminRoute.jsx` — checks `isAuthenticated` + `user.role === "admin"`, redirects non-admins to `/feed`, unauthenticated to `/login`
+- **Frontend — Admin dashboard page:**
+  - Created `pages/AdminPage.jsx` + `AdminPage.css` — stat cards (Users, Prompts, Boards), Recent Activity list with shimmer loading
+- **Frontend — Route rewiring:**
+  - `/feed` and `/prompt/:id` are now public (no ProtectedRoute) — guests can browse
+  - `/admin` wrapped with `AdminRoute` — non-admins redirected to `/feed`
+  - `/profile` route added (reuses Dashboard for now)
+  - Catch-all redirects to `/`
+- **Frontend — Guest browsing:**
+  - `Feed.jsx` — `saved-ids` fetch skipped for guests; like/save modal only rendered when authenticated; `onToggleLike` and `onSave` passed as `undefined` for guests
+  - `PromptCard.jsx` — like/save buttons conditionally rendered based on `onToggleLike`/`onSave` prop presence; share always visible
+  - `PromptDetail.jsx` — like/save/delete actions hidden for guests; likes count shown as static text; `saved-ids` fetch skipped for guests
+- **Frontend — Role-aware navigation:**
+  - `Navbar.jsx` — imports `useAuth`; shows "Explore" only for guests; "Explore + Boards" for users; "Explore + Boards + Admin" for admins; Upload button and UserMenu only for authenticated users; Login button for guests
+  - `Sidebar.jsx` — imports `useAuth`; injects Admin link (Shield icon) for admin users between Boards and Settings
+- **Permissions matrix:**
+  - Guest: Landing, Explore (browse), Prompt Detail (read-only), Share — no Like, Save, Upload, Boards
+  - User: Full access except Admin
+  - Admin: Full access including Admin dashboard
+- **Existing infrastructure reused:**
+  - `User.role` field already existed in model (enum `["user", "admin"]`, default `"user"`)
+  - `generateToken` already included `role` in JWT payload
+  - Auth responses already returned `user.role`
+  - `roleMiddleware.js` (`requireAdmin`) already existed
+  - `optionalAuth.js` already existed
+- Verified clean production build (vite build passes)
+
+### Phase 2 — Guest Browsing Limitation
+- **Frontend — 5-prompt cap for guests:**
+  - `Feed.jsx` — guests see only first 5 prompts (`GUEST_PROMPT_LIMIT = 5`); `visiblePrompts` slices `prompts.slice(0, 5)` when `!isAuthenticated`; authenticated users see all
+  - After 5th prompt, renders `GuestFeedCTA` component below the masonry grid
+  - `GuestFeedCTA` uses `column-span: all` to break out of masonry columns as a full-width block
+- **GuestFeedCTA component:**
+  - Created `components/feed/GuestFeedCTA.jsx` — premium login wall with lock icon, benefits list (Like, Save, Upload), "Continue with Google" button (Google SVG icon), "Sign In" button, "Free forever · No credit card required" note, "Join thousands of creators" sparkle
+  - Created `components/feed/GuestFeedCTA.css` — gradient background, radial glow, responsive layout (stacked benefits on mobile)
+  - Both buttons navigate to `/login`; Google button shows Google SVG icon
+  - Framer Motion fade-in + slide-up animation
+- **No backend changes** — frontend slicing only for MVP
+- **Authenticated experience unchanged** — `isAuthenticated` users see full untruncated feed
+- Verified clean production build (vite build passes)
+
+### Phase 2 — PromptPin UI Overhaul
+- **Navbar.jsx:** White bg, thin bottom border, centered search (860px max, #F3F4F6, 999px radius), black logo + "Pinitup", right-side links (Explore, Boards, Create, Admin), black avatar, "Sign out" pill
+- **Feed.jsx:** "Prompt Board" header, image thumbnail category strip (160×76px cards with bg images + white pill labels), demo content fallback from `demoPrompts.js`
+- **Feed.css:** White bg, 5-col CSS `column-count` masonry (16px gap, 18px radius), image category strip, black gradient hover overlay
+- **PromptCard.jsx:** Image-first, category badge (white pill top-left), hover overlay (black gradient, white rounded buttons for Heart/Bookmark/Share/MoreHorizontal), title bottom-left, author row with avatar + name
+- **Sidebar.jsx:** White bg, light borders, #F3F4F6 active state, neutral bottom text
+- **UserMenu.jsx:** White dropdown, black text, #E5E7EB borders, shadow elevation, "Sign out" label
+- **GuestFeedCTA.css:** Black accent replacing indigo/purple (icon bg, sign-in button, sparkle text)
+- **Demo content:** Created `client/src/data/demoPrompts.js` — 48 prompts across 12 categories, picsum.photos placeholders, 8 authors, category images, category counts
+- **Feed.jsx integration:** Server prompts first; demo fallback when API empty/errored; demo prompts filterable by category/search/sort; guest 5-prompt limit applies to demo content
+- All existing features preserved: auth, likes, boards, sharing, search, RBAC, guest browsing
+- Verified clean production build (vite build passes)
+
+### Phase 2 — Feed as Homepage
+- **Route change:** `/` now renders `<Feed />` instead of `<LandingPage />`
+- `/feed` route removed — all internal links updated from `/feed` to `/`
+- `LandingPage.jsx` and `LandingPage.css` preserved in codebase but no longer routed
+- Updated references in: `App.jsx`, `Navbar.jsx`, `Sidebar.jsx`, `AdminRoute.jsx`, `PromptDetail.jsx`, `WelcomeSection.jsx`, `TrendingPrompts.jsx`, `RecentPrompts.jsx`, `QuickActions.jsx`
+- Guest browsing (5-prompt cap + CTA) works on `/` as it did on `/feed`
+- Prompt Detail (`/prompt/:id`) remains public
+- Verified clean production build (vite build passes)
+
+### Phase 2 — PromptPin UI Overhaul
+- **White minimal theme** replacing previous dark/glassmorphism design
+- **Navbar.jsx rewritten:** White background, thin bottom border (#E5E7EB), centered search bar (860px max, 42px height, #F3F4F6 bg, 999px radius), black logo + "Pinitup" text, right-side links (Explore, Boards, Create, Admin), black circle avatar, "Sign out" pill button
+- **Feed.jsx rewritten:** "Prompt Board" centered header with title + subtitle, image thumbnail category strip (160×76px cards with background images + white pill labels), demo content integration (40-60 prompts across 12 categories from `demoPrompts.js`), server-first with demo fallback
+- **Feed.css rewritten:** White background, 5-column CSS `column-count` masonry (16px gap, 18px border radius), image thumbnail category strip (16px radius, 3px black ring on active), black gradient hover overlay on cards
+- **PromptCard.jsx rewritten:** Image-first layout, category badge (white pill top-left), hover overlay (black gradient bottom) with Pin/Heart/Share/MoreHorizontal in rounded white buttons, title bottom-left (white, 14px, 600 weight), author row (avatar circle + name in white), no card body below image
+- **Sidebar.jsx rewritten:** White background, light theme (black text, #F3F4F6 active bg, #E5E7EB borders), replaced purple upgrade card with neutral text
+- **UserMenu.jsx rewritten:** White dropdown, #111111 text, #E5E7EB borders, "Sign out" label, shadow-based elevation
+- **GuestFeedCTA.css updated:** Black accent replacing indigo/purple (icon bg #F3F4F6, sign-in button #111111, sparkle text #9CA3AF)
+- **Demo content data:** Created `client/src/data/demoPrompts.js` — 48 prompts across 12 categories (Fashion, Food, Product, Beauty, SaaS, Interior, Travel, Motion, Architecture, Mobile, Brand) with picsum.photos placeholder images, 8 author names, CATEGORY_IMAGES for thumbnail strip, CATEGORY_COUNTS for badge counts
+- **Feed.jsx demo integration:** Server prompts take priority; when API returns empty or errors, demo prompts shown as fallback; demo prompts filterable by category/search/sort on client-side; guest 5-prompt limit applied to demo content too
+- All existing features preserved: auth, likes, boards, sharing, search, RBAC, guest browsing
+- Verified clean production build (vite build passes)
+
 ### Auth Architecture (as of latest commit)
 - `AuthProvider` wraps `<App />` in `main.jsx` — single source of truth
 - `LoginPage` and `OAuthSuccess` call `AuthContext.login()` (no direct localStorage writes)
-- `ProtectedRoute` wraps `/dashboard`, `/feed`, `/add-prompt`, `/prompt/:id`, `/boards`, `/boards/:id`
+- `ProtectedRoute` wraps `/dashboard`, `/add-prompt`, `/boards`, `/boards/:id`, `/profile`
+- `AdminRoute` wraps `/admin`
+- `/` (Feed) and `/prompt/:id` are public — guests can browse (5-prompt limit for guests)
 - `UserMenu` integrated into `Navbar` (replaces hardcoded avatar)
 - `api.js` 401 interceptor delegates to `AuthContext.logout()`
 - Dashboard and AddPromptPage no longer have duplicate `localStorage` auth guards
 
 ## Pending Features
 
-- Admin dashboard UI
-- User profile page
-- Registration page (API exists, no UI)
-- Guest browsing (limit to 5 prompts)
-- Categories management page
+- Registration / signup UI (landing page "Get Started" button already links to `/signup`)
+- User profile page (`/profile` route exists but reuses Dashboard)
 - Settings page
-- 404 page (currently redirects to /login)
+- 404 page (catch-all now redirects to `/`)
 - TailwindCSS integration (currently inline styles + CSS)
 
 ## Known Bugs
@@ -142,13 +258,17 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - AuthContext is the single owner of token/user state; no component touches localStorage directly
 - ProtectedRoute handles all route-level auth; individual pages do not check tokens
 - Google OAuth decodes JWT payload client-side for user info (no separate /me endpoint yet)
-- Dark mode first design with glassmorphism
+- White minimal PromptPin-inspired design — white backgrounds, black text, #E5E7EB borders, almost no shadows, no gradients on chrome
 - No TypeScript — project uses plain JSX with Vite
 - Likes use optimistic updates with server reconciliation; LikeButton handles its own API call and reverts on failure
 - Content endpoints attach isLiked via bulk Like query (not aggregation pipeline) for simplicity
 - Save to Board uses toggle behavior: checkmark = saved, clicking removes, optimistic UI updates
 - Saved state persisted via `GET /boards/saved-ids` on page load (not session-only)
 - Modal uses `?contentId=X` query param to get `isSaved` per board for accurate saved-state display
+- Guest browsing limited to first 5 prompts via frontend slicing (no backend changes for MVP)
+- GuestFeedCTA uses `column-span: all` to break out of masonry columns as full-width block
+- Demo content (48 prompts) serves as default feed when API is empty; server data always takes priority
+- Category thumbnails use image backgrounds (picsum.photos) with white pill labels — not text-only chips
 
 ## Database Schema Summary
 
@@ -178,17 +298,20 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `POST /api/boards/:id/save/:contentId` — save prompt to board (auth required, duplicate prevention)
 - `DELETE /api/boards/:id/save/:contentId` — remove prompt from board (auth required)
 - `GET /api/likes/ping` — working
+- `GET /api/admin/stats` — admin-only: returns totalUsers, totalPrompts, totalBoards, recentActivity
 
 ## Current Phase
 
-Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Share + Delete + UI/UX Polish operational
+Phase 2 — PromptPin UI Overhaul Complete; Production build passes
 
 ## Next Tasks
 
-1. Admin dashboard
-2. User profile page
-3. Registration UI
-4. Guest browsing limits
+1. User profile page (proper implementation, not Dashboard reuse)
+2. Settings page
+3. 404 page (catch-all now redirects to `/`)
+4. Prompt detail page styling update to match PromptPin white theme
+5. Responsive navbar mobile hamburger menu
+6. Production-quality category thumbnail images (replace picsum.photos placeholders)
 
 ## Daily Progress Log
 
@@ -274,7 +397,17 @@ Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Share + Delete +
    - Frontend: Feed.jsx wires `onShare` callback to trigger success toast ("Link copied to clipboard!")
    - CSS: `.share-button` pill-shaped (green tint on hover), `.share-button--small` icon-only variant, `.share-spinner` animation
     - No backend changes needed — share URL is purely client-side construction using existing `/prompt/:id` route
-    - Verified clean production build
+   - Verified clean production build
+- **Dashboard Quick Actions grid polish:**
+   - Grid now uses `grid-auto-rows: 1fr` so every card has identical height
+   - Added `.dashboard-action { display: contents }` wrapper to flatten Link/button into grid items
+   - Arrow pinned to far right via `margin-left: auto` + `flex-shrink: 0`
+   - Icon container pinned via `flex-shrink: 0` to prevent compression
+   - Content area uses `min-width: 0` to prevent text overflow
+   - Padding normalized to 24px on all cards
+   - Mobile (<576px): single column, card stacks vertically, arrow hidden
+   - Responsive breakpoints preserved: 2-col ≥992px, 1-col <992px
+   - Verified clean production build
 - **UI/UX polish pass (accessibility & bug fixes):**
    - Fixed critical comma operator bug in Feed.jsx (`return next, { replace: true }` → `setSearchParams(next, { replace: true })`) — URL params never updated when filters changed
    - Fixed stale state bug in Feed.jsx — `isInitialLoad.current = false` moved from `finally` to success path; `finally` block preserved stale state after failed load
@@ -327,6 +460,68 @@ Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Share + Delete +
 - Added `aria-label` to all Boards.jsx modal form inputs
 - Added `flex-wrap` to `.stm-create-actions` + viewport overflow support for short screens
 - Verified clean production build
+- **Pinterest-style UI refactor:**
+   - Feed grid switched from CSS Grid to CSS `column-count` masonry layout (5→4→3→2 columns across breakpoints)
+   - PromptCard redesigned: image-first layout with no fixed height, natural aspect ratio preservation
+   - Floating action buttons (Like, Save, Share) overlay on image bottom with gradient scrim — appear on hover
+   - Category badge overlays on image top-left with frosted-glass background
+   - Card body reduced to title (2-line clamp) + author avatar/name + inline like count — minimal below-fold
+   - New horizontal category strip: sticky below navbar, horizontally scrollable, frosted-glass background, replaces in-toolbar chips
+   - FeedToolbar simplified: removed category chips (moved to strip), removed result count from toolbar body, cleaner layout with left/right split
+   - Feed.jsx: category strip rendered above toolbar, integrated with URL-based filter state
+   - FeedSkeleton updated: 12 skeleton cards with variable heights (160-280px) matching masonry, masonry column grid
+   - PromptCard: `onToggleLike` and `onSave` now called directly (not through inner LikeButton/save-button components in the card — those are for PromptDetail)
+   - PromptCard: Author avatar with initials, like count displayed inline below card
+   - Navbar simplified: removed bell icon, removed subtitle text, cleaner search bar with rgba background, nav links use subtle active state
+   - PromptDetail.css: image takes 1.1fr width (larger than info panel), no gap between image and info (edge-to-edge), taller default image (400px min)
+   - All existing features preserved: auth, likes, boards, sharing, search, dashboard, prompt detail
+   - Responsive: masonry scales from 5 columns → 2 columns on mobile, category strip scrollable on all sizes
+   - Verified clean production build
+- **Landing page (Sprint 1):**
+  - Created `LandingPage.jsx` — Hero (title, subtitle, CTAs, stats, masonry preview), Features (6 cards), Categories (8 horizontal), Workflow (4 steps), Pricing (Free/Pro), FAQ (6 accordion items), CTA block, Footer
+  - Created `LandingPage.css` — dark (#0b0b0f) theme, indigo/violet gradient accent, full responsive (1024/768/576), frosted-glass category cards, gradient CTA block
+  - Updated `App.jsx` — `/` now renders `<LandingPage />` instead of `<Navigate to="/login" />`; catch-all redirects to `/`
+  - All sections use Framer Motion `useInView` for scroll-triggered fade-in
+  - Nav links: "Login" and "Get Started" — no auth dependency on landing page
+  - Verified clean production build
+- **Role-Based Access Control (Sprint 2):**
+  - Backend: `config/passport.js` — Google OAuth now assigns `role: "admin"` for emails `content@npl.live`, `shylesh@npl.live`, `dev@npl.live`; auto-promotes existing users on login
+  - Backend: Created `controllers/adminController.js` — `getAdminStats` returns total users/prompts/boards + recent activity
+  - Backend: Created `routes/adminRoutes.js` — `GET /api/admin/stats` (protect + requireAdmin)
+  - Backend: Registered admin routes in `server.js`
+  - Frontend: Created `components/AdminRoute.jsx` — role gate (admin → page, non-admin → `/feed`, unauthenticated → `/login`)
+  - Frontend: Created `pages/AdminPage.jsx` + `AdminPage.css` — stat cards + recent activity list with shimmer loading
+  - Frontend: `App.jsx` rewired — `/feed` and `/prompt/:id` public; `/admin` wrapped with AdminRoute; `/profile` added (reuses Dashboard); catch-all → `/`
+  - Frontend: `Feed.jsx` — guest-safe: skips `saved-ids` fetch, passes `undefined` for `onToggleLike`/`onSave` when unauthenticated
+  - Frontend: `PromptCard.jsx` — like/save buttons conditionally rendered based on prop presence
+  - Frontend: `PromptDetail.jsx` — like/save/delete hidden for guests; likes shown as static text; `saved-ids` skipped for guests
+  - Frontend: `Navbar.jsx` — role-aware: guests see Explore + Login; users see Explore + Boards + Upload; admins see Explore + Boards + Admin + Upload
+  - Frontend: `Sidebar.jsx` — Admin link (Shield icon) injected for admin users between Boards and Settings
+  - Verified clean production build
+- **Guest browsing limitation:**
+  - Created `components/feed/GuestFeedCTA.jsx` — premium login wall: lock icon, benefits list (Like, Save, Upload), Google button, Sign In button, "Free forever" note, sparkle
+  - Created `components/feed/GuestFeedCTA.css` — gradient background, radial glow, responsive stacked benefits
+  - Updated `Feed.jsx` — guests see only first 5 prompts (`GUEST_PROMPT_LIMIT = 5`); `visiblePrompts` slices array when `!isAuthenticated`; `GuestFeedCTA` rendered after 5th prompt using `column-span: all`
+  - Authenticated users see full untruncated feed — no changes to their experience
+  - No backend changes — frontend slicing only for MVP
+  - Verified clean production build
+- **Feed as homepage:**
+  - `App.jsx` — `/` now renders `<Feed />` instead of `<LandingPage />`; removed `/feed` route
+  - Updated all `/feed` references to `/` across: Navbar, Sidebar, AdminRoute, PromptDetail, WelcomeSection, TrendingPrompts, RecentPrompts, QuickActions
+  - `LandingPage.jsx` + `LandingPage.css` preserved but no longer routed
+  - Guest browsing (5-prompt cap + CTA) works on `/`
+  - Verified clean production build
+- **PromptPin UI overhaul:**
+  - Created `client/src/data/demoPrompts.js` — 48 prompts across 12 categories with picsum.photos placeholders, 8 authors, category images for thumbnails, category counts
+  - Rewrote `Navbar.jsx` — white bg, thin bottom border, centered search (860px max, #F3F4F6, 999px radius), black logo, right-side nav links, black avatar, "Sign out" pill
+  - Rewrote `Feed.jsx` — "Prompt Board" centered header, image thumbnail category strip (160×76px cards with bg images + white pill labels), demo content as fallback when API empty, server-first data flow
+  - Rewrote `Feed.css` — white bg, 5-col column-count masonry (16px gap, 18px radius), image category thumbnails with active ring, hover overlay styles
+  - Rewrote `PromptCard.jsx` — image-first, category badge (white pill top-left), hover overlay (black gradient bottom, white rounded action buttons), title bottom-left, author row with avatar + name
+  - Rewrote `Sidebar.jsx` — white bg, light borders, #F3F4F6 active state, neutral bottom card
+  - Rewrote `UserMenu.jsx` — white dropdown, black text, shadow elevation, "Sign out" label
+  - Updated `GuestFeedCTA.css` — black accent replacing indigo/purple (icon bg, sign-in button, sparkle text)
+  - Fixed `sharePrompt` import in PromptCard.jsx (default export, not named)
+  - Verified clean production build
 
 ## Developer Notes
 

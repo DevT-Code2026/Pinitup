@@ -15,7 +15,7 @@ export default function UserMenu() {
 
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
     displayName
-  )}&background=7C3AED&color=fff`;
+  )}&background=111111&color=fff`;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -23,7 +23,6 @@ export default function UserMenu() {
         setOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -50,7 +49,7 @@ export default function UserMenu() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: 8,
           background: "transparent",
           border: "none",
           cursor: "pointer",
@@ -64,17 +63,16 @@ export default function UserMenu() {
           src={avatarUrl}
           alt={displayName}
           style={{
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             borderRadius: "50%",
-            border: "2px solid #7C3AED",
+            border: "2px solid #E5E7EB",
             objectFit: "cover",
           }}
         />
-
         <ChevronDown
-          size={16}
-          color="#888"
+          size={14}
+          color="#9CA3AF"
           style={{
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "0.2s",
@@ -96,24 +94,24 @@ export default function UserMenu() {
               right: 0,
               top: "calc(100% + 12px)",
               width: 220,
-              background: "#17171C",
-              border: "1px solid #2B2B35",
+              background: "#ffffff",
+              border: "1px solid #E5E7EB",
               borderRadius: 14,
-              padding: "8px",
-              boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
+              padding: 8,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               zIndex: 200,
             }}
           >
             <div
               style={{
                 padding: "10px 12px",
-                borderBottom: "1px solid #2B2B35",
-                marginBottom: "6px",
+                borderBottom: "1px solid #F3F4F6",
+                marginBottom: 6,
               }}
             >
               <div
                 style={{
-                  color: "#fff",
+                  color: "#111111",
                   fontWeight: 600,
                   fontSize: 14,
                   whiteSpace: "nowrap",
@@ -124,11 +122,10 @@ export default function UserMenu() {
               >
                 {displayName}
               </div>
-
               {displayEmail && (
                 <div
                   style={{
-                    color: "#888",
+                    color: "#9CA3AF",
                     fontSize: 12,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
@@ -147,24 +144,28 @@ export default function UserMenu() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "10px",
+                gap: 10,
                 width: "100%",
                 padding: "10px 12px",
                 background: "transparent",
                 border: "none",
                 borderRadius: 10,
-                color: "#F87171",
+                color: "#DC2626",
                 fontWeight: 600,
                 fontSize: 14,
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "background 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.1)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#FEF2F2")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
             >
               <LogOut size={16} />
-              Logout
+              Sign out
             </button>
           </motion.div>
         )}

@@ -2,6 +2,12 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
 
+const ADMIN_EMAILS = new Set([
+  "content@npl.live",
+  "shylesh@npl.live",
+  "dev@npl.live",
+]);
+
 // Stateless — no serializeUser/deserializeUser or session store needed
 // since every route using this runs with { session: false } and the app
 // issues its own JWT afterwards (see authController.googleAuthCallback).
@@ -16,10 +22,18 @@ passport.use(
       try {
         const email = profile.emails?.[0]?.value?.toLowerCase();
         const avatar = profile.photos?.[0]?.value;
+        const isAdminEmail = email && ADMIN_EMAILS.has(email);
 
         // 1. Existing Google user — log them in.
         let user = await User.findOne({ googleId: profile.id });
-        if (user) return done(null, user);
+        if (user) {
+          // Promote if email was recently added to admin list
+          if (isAdminEmail && user.role !== "admin") {
+            user.role = "admin";
+            await user.save();
+          }
+          return done(null, user);
+        }
 
         // 2. No Google-linked account yet, but the email already exists as
         // a local account — link Google to it instead of creating a
@@ -29,6 +43,9 @@ passport.use(
           if (user) {
             user.googleId = profile.id;
             if (!user.avatar) user.avatar = avatar;
+            if (isAdminEmail && user.role !== "admin") {
+              user.role = "admin";
+            }
             await user.save();
             return done(null, user);
           }
@@ -41,6 +58,7 @@ passport.use(
           provider: "google",
           googleId: profile.id,
           avatar,
+          role: isAdminEmail ? "admin" : "user",
         });
 
         return done(null, user);
