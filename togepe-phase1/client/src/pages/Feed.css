@@ -611,6 +611,11 @@
     padding: 0 16px 32px;
   }
 
+  .feed-category-strip {
+    top: 56px;
+    padding: 12px 0 16px;
+  }
+
   .feed-prompt-grid,
   .feed-loading__grid {
     column-count: 2;
@@ -620,10 +625,6 @@
   .feed-prompt-card {
     margin-bottom: 12px;
     border-radius: 14px;
-  }
-
-  .feed-category-strip {
-    padding: 12px 0 16px;
   }
 
   .feed-category-strip__scroll {

@@ -1,15 +1,38 @@
-import { useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Search, Bell, MessageCircle, ChevronDown, LogOut } from "lucide-react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import {
+  Search,
+  Bell,
+  MessageCircle,
+  LogOut,
+  Menu,
+  X,
+  Compass,
+  PlusSquare,
+  FolderKanban,
+  Shield,
+  LayoutDashboard,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import "./Navbar.css";
 
-export default function Navbar({ searchQuery = "", onSearchChange }) {
+export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef(null);
+  const mobileInputRef = useRef(null);
+  const drawerRef = useRef(null);
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const isAuthenticated = Boolean(user);
+  const isAdmin = user?.role === "admin";
+
+  /* ── Handlers ── */
   const handleSignOut = () => {
     logout();
+    setDrawerOpen(false);
     navigate("/login", { replace: true });
   };
 
@@ -19,23 +42,72 @@ export default function Navbar({ searchQuery = "", onSearchChange }) {
     navigate("/");
   };
 
+  const openMobileSearch = () => {
+    setMobileSearchOpen(true);
+    setTimeout(() => mobileInputRef.current?.focus(), 50);
+  };
+
+  const closeMobileSearch = () => {
+    setMobileSearchOpen(false);
+    if (onSearchChange) onSearchChange("");
+  };
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  /* ── Lock body scroll when drawer is open ── */
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
+
+  /* ── Escape key closes drawer ── */
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (mobileSearchOpen) {
+          closeMobileSearch();
+        } else if (drawerOpen) {
+          closeDrawer();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [drawerOpen, mobileSearchOpen, closeDrawer]);
+
   return (
-    <nav style={styles.nav}>
-      <div style={styles.inner}>
-        {/* Left — Logo */}
-        <Link to="/" onClick={handleLogoClick} style={styles.logoLink}>
-          <div style={styles.logoIcon}>
+    <nav className="navbar" role="navigation" aria-label="Main navigation">
+      <div className="navbar__inner">
+        {/* ── Left — Logo ── */}
+        <Link
+          to="/"
+          onClick={handleLogoClick}
+          className="navbar__logo"
+          aria-label="Pinitup home"
+        >
+          <div className="navbar__logo-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect width="24" height="24" rx="6" fill="#111" />
               <circle cx="12" cy="10" r="3" fill="white" />
-              <path d="M8 18c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              <path
+                d="M8 18c0-2.2 1.8-4 4-4s4 1.8 4 4"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
-          <span style={styles.logoText}>Pinitup</span>
+          <span className="navbar__logo-text">Pinitup</span>
         </Link>
 
-        {/* Center — Search bar */}
-        <div style={styles.searchWrap}>
+        {/* ── Center — Desktop search ── */}
+        <div className="navbar__search">
           <Search size={18} color="#9CA3AF" style={{ flexShrink: 0 }} />
           <input
             ref={inputRef}
@@ -43,67 +115,277 @@ export default function Navbar({ searchQuery = "", onSearchChange }) {
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Search prompts..."
-            style={styles.searchInput}
+            className="navbar__search-input"
             aria-label="Search prompts"
           />
         </div>
 
-        {/* Right — Actions */}
-        <div style={styles.right}>
-          <Link to="/" style={styles.navLink}>
+        {/* ── Right — Desktop actions ── */}
+        <div className="navbar__right">
+          <Link to="/" className="navbar__link">
             Explore
           </Link>
 
-          {isAuthenticated(user) && (
+          {isAuthenticated && (
             <>
-              <Link to="/boards" style={styles.navLink}>
+              <Link to="/boards" className="navbar__link">
                 Boards
               </Link>
-              <Link to="/add-prompt" style={styles.navLink}>
+              <Link to="/add-prompt" className="navbar__link">
                 Create
               </Link>
             </>
           )}
 
-          {user?.role === "admin" && (
-            <Link to="/admin" style={styles.navLink}>
+          {isAdmin && (
+            <Link to="/admin" className="navbar__link">
               Admin
             </Link>
           )}
 
-          <div style={styles.divider} />
+          <div className="navbar__divider" />
 
-          {isAuthenticated(user) ? (
+          {isAuthenticated ? (
             <>
-              <button style={styles.iconBtn} aria-label="Notifications">
+              <button
+                className="navbar__icon-btn"
+                aria-label="Notifications"
+                type="button"
+              >
                 <Bell size={20} color="#767676" />
               </button>
-              <button style={styles.iconBtn} aria-label="Messages">
+              <button
+                className="navbar__icon-btn"
+                aria-label="Messages"
+                type="button"
+              >
                 <MessageCircle size={20} color="#767676" />
               </button>
-              <Link to="/profile" style={styles.profileBtn}>
-                <div style={styles.avatar}>
-                  {getInitials(user?.name)}
-                </div>
+              <Link to="/profile" className="navbar__profile">
+                <div className="navbar__avatar">{getInitials(user?.name)}</div>
               </Link>
-              <button onClick={handleSignOut} style={styles.signOutBtn}>
+              <button
+                onClick={handleSignOut}
+                className="navbar__signout"
+                type="button"
+              >
                 <LogOut size={16} />
                 Sign out
               </button>
             </>
           ) : (
-            <Link to="/login" style={styles.loginLink}>
+            <Link to="/login" className="navbar__login">
               Log in
             </Link>
           )}
         </div>
+
+        {/* ── Mobile — Search toggle ── */}
+        <button
+          className="navbar__search-toggle"
+          onClick={openMobileSearch}
+          aria-label="Open search"
+          type="button"
+        >
+          <Search size={20} />
+        </button>
+
+        {/* ── Mobile — Hamburger ── */}
+        <button
+          className="navbar__hamburger"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+          type="button"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* ── Mobile — Expandable search bar ── */}
+        <div
+          className={`navbar__mobile-search ${
+            mobileSearchOpen ? "navbar__mobile-search--open" : ""
+          }`}
+        >
+          <Search size={18} color="#9CA3AF" style={{ flexShrink: 0 }} />
+          <input
+            ref={mobileInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            placeholder="Search prompts..."
+            className="navbar__mobile-search-input"
+            aria-label="Search prompts"
+          />
+          <button
+            className="navbar__mobile-search-close"
+            onClick={closeMobileSearch}
+            aria-label="Close search"
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Mobile — Drawer overlay ── */}
+      <div
+        className={`navbar__drawer-overlay ${
+          drawerOpen ? "navbar__drawer-overlay--open" : ""
+        }`}
+        onClick={closeDrawer}
+        aria-hidden="true"
+      />
+
+      {/* ── Mobile — Drawer ── */}
+      <div
+        ref={drawerRef}
+        className={`navbar__drawer ${drawerOpen ? "navbar__drawer--open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+      >
+        <div className="navbar__drawer-header">
+          <span className="navbar__drawer-title">Menu</span>
+          <button
+            className="navbar__drawer-close"
+            onClick={closeDrawer}
+            aria-label="Close menu"
+            type="button"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Search inside drawer */}
+        <div className="navbar__drawer-search">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              onSearchChange?.(e.target.value);
+              if (e.target.value) {
+                closeDrawer();
+                navigate("/");
+              }
+            }}
+            placeholder="Search prompts..."
+            className="navbar__drawer-search-input"
+            aria-label="Search prompts"
+          />
+        </div>
+
+        <nav className="navbar__drawer-nav">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+            }
+            onClick={closeDrawer}
+            end
+          >
+            <Compass size={18} />
+            Explore
+          </NavLink>
+
+          {isAuthenticated && (
+            <>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <LayoutDashboard size={18} />
+                Dashboard
+              </NavLink>
+              <NavLink
+                to="/boards"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <FolderKanban size={18} />
+                Boards
+              </NavLink>
+              <NavLink
+                to="/add-prompt"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <PlusSquare size={18} />
+                Create
+              </NavLink>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <div
+                  className="navbar__avatar"
+                  style={{ width: 18, height: 18, fontSize: 9 }}
+                >
+                  {getInitials(user?.name)}
+                </div>
+                Profile
+              </NavLink>
+            </>
+          )}
+
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+              }
+              onClick={closeDrawer}
+            >
+              <Shield size={18} />
+              Admin
+            </NavLink>
+          )}
+
+          {isAuthenticated && (
+            <>
+              <div className="navbar__drawer-divider" />
+              <button
+                className="navbar__drawer-signout"
+                onClick={handleSignOut}
+                type="button"
+              >
+                <LogOut size={18} />
+                Sign out
+              </button>
+            </>
+          )}
+
+          {!isAuthenticated && (
+            <>
+              <div className="navbar__drawer-divider" />
+              <Link
+                to="/login"
+                className="navbar__drawer-login"
+                onClick={closeDrawer}
+              >
+                Log in
+              </Link>
+            </>
+          )}
+        </nav>
+
+        <div className="navbar__drawer-footer">
+          <p className="navbar__drawer-footer-text">
+            Built for creators who think in prompts.
+          </p>
+        </div>
       </div>
     </nav>
   );
-}
-
-function isAuthenticated(user) {
-  return Boolean(user);
 }
 
 function getInitials(name) {
@@ -115,149 +397,3 @@ function getInitials(name) {
     .toUpperCase()
     .slice(0, 2);
 }
-
-const styles = {
-  nav: {
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-    background: "#fff",
-    borderBottom: "1px solid #E5E7EB",
-    height: 68,
-    display: "flex",
-    alignItems: "center",
-  },
-  inner: {
-    width: "100%",
-    maxWidth: 1400,
-    margin: "0 auto",
-    padding: "0 24px",
-    display: "flex",
-    alignItems: "center",
-    height: "100%",
-    gap: 16,
-  },
-  logoLink: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    textDecoration: "none",
-    flexShrink: 0,
-  },
-  logoIcon: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: "#111",
-    letterSpacing: -0.5,
-  },
-  searchWrap: {
-    flex: 1,
-    maxWidth: 860,
-    height: 42,
-    background: "#F3F4F6",
-    borderRadius: 999,
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "0 16px",
-    marginLeft: 12,
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    border: "none",
-    background: "transparent",
-    outline: "none",
-    fontSize: 15,
-    color: "#111",
-    fontFamily: "inherit",
-  },
-  right: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
-  navLink: {
-    padding: "8px 14px",
-    fontSize: 15,
-    fontWeight: 500,
-    color: "#5F6368",
-    textDecoration: "none",
-    borderRadius: 24,
-    transition: "background 0.15s, color 0.15s",
-    whiteSpace: "nowrap",
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    background: "#E5E7EB",
-    margin: "0 6px",
-    flexShrink: 0,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: "50%",
-    border: "none",
-    background: "transparent",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "background 0.15s",
-  },
-  profileBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textDecoration: "none",
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    background: "#111",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 13,
-    fontWeight: 600,
-    letterSpacing: 0.5,
-  },
-  signOutBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "8px 16px",
-    fontSize: 14,
-    fontWeight: 500,
-    color: "#5F6368",
-    background: "#F3F4F6",
-    border: "none",
-    borderRadius: 24,
-    cursor: "pointer",
-    transition: "background 0.15s",
-    whiteSpace: "nowrap",
-  },
-  loginLink: {
-    padding: "10px 20px",
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#fff",
-    background: "#111",
-    textDecoration: "none",
-    borderRadius: 24,
-    whiteSpace: "nowrap",
-  },
-};
