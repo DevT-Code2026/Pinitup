@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar.jsx";
 import PromptGrid from "../components/feed/PromptGrid.jsx";
@@ -16,7 +15,6 @@ import {
 
 import "./Feed.css";
 
-const GUEST_PROMPT_LIMIT = 5;
 const DEBOUNCE_MS = 400;
 const FEED_TARGET_COUNT = 40;
 
@@ -92,6 +90,9 @@ export default function Feed() {
   const displayPrompts = useMemo(() => {
     const realPrompts = Array.isArray(serverPrompts) ? serverPrompts : [];
 
+    /* Guests never get demo padding — the backend already caps them at 5 */
+    if (isGuest) return realPrompts;
+
     /* When the user is actively searching, don't pad with demo content */
     const isFiltering =
       Boolean(searchQuery.trim()) || (selectedCategory && selectedCategory !== "All");
@@ -123,15 +124,10 @@ export default function Feed() {
     const appended = fillers.slice(0, Math.max(0, needed));
 
     return [...realPrompts, ...appended];
-  }, [serverPrompts, selectedCategory, searchQuery]);
+  }, [serverPrompts, selectedCategory, searchQuery, isGuest]);
 
   /* ── Guest limit ── */
-  const visiblePrompts = useMemo(() => {
-    if (!isGuest) return displayPrompts;
-    return displayPrompts.slice(0, GUEST_PROMPT_LIMIT);
-  }, [displayPrompts, isGuest]);
-
-  const showGuestCTA = isGuest && displayPrompts.length >= GUEST_PROMPT_LIMIT;
+  const showGuestCTA = isGuest && displayPrompts.length > 0;
 
   /* ── Like/Save handlers (no-ops for demo content) ── */
   const handleToggleLike = useCallback(() => {}, []);
@@ -143,16 +139,6 @@ export default function Feed() {
       <Navbar searchQuery={searchQuery} onSearchChange={handleSearchChange} />
 
       <div className="feed-main">
-        {/* Header */}
-        <div className="feed-container">
-          <div className="feed-header">
-            <h1 className="feed-header__title">Prompt Board</h1>
-            <p className="feed-header__subtitle">
-              All prompts are unlocked. Scroll forever, like, pin, and share.
-            </p>
-          </div>
-        </div>
-
         {/* Category strip — image thumbnails */}
         <div className="feed-category-strip">
           <div className="feed-category-strip__scroll">
@@ -252,7 +238,7 @@ export default function Feed() {
           ) : (
             <>
               <PromptGrid
-                prompts={visiblePrompts}
+                prompts={displayPrompts}
                 likedIds={new Set()}
                 savedIds={new Set()}
                 onToggleLike={handleToggleLike}

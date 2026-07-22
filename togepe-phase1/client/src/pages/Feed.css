@@ -19,30 +19,6 @@
 }
 
 /* ==========================
-   Header
-   ========================== */
-
-.feed-header {
-  padding: 32px 0 24px;
-  text-align: center;
-}
-
-.feed-header__title {
-  margin: 0 0 8px;
-  font-size: 32px;
-  font-weight: 700;
-  color: #111111;
-  letter-spacing: -0.5px;
-}
-
-.feed-header__subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: #767676;
-  font-weight: 400;
-}
-
-/* ==========================
    Category Strip — Image Thumbnails
    ========================== */
 
@@ -658,14 +634,6 @@
   .feed-category-strip__thumb {
     width: 130px;
     height: 64px;
-  }
-
-  .feed-header {
-    padding: 24px 0 16px;
-  }
-
-  .feed-header__title {
-    font-size: 26px;
   }
 }
 
