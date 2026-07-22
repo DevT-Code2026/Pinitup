@@ -1,0 +1,85 @@
+# llms.txt — Pinitup
+
+## What is Pinitup?
+
+Pinitup is a Pinterest-inspired AI Prompt sharing platform. Users discover, save, organize, and manage high-quality AI prompts. Think Pinterest, but exclusively for AI prompts — writers, designers, developers, and creators browse curated prompts, save them into boards, and share them with others.
+
+## Key Features
+
+- **Prompt Feed:** Masonry grid of AI prompts with images, search, category filtering, and sort (newest, oldest, popular, most saved)
+- **Prompt Detail:** Full prompt view with image, description, tags, like/save/share actions
+- **Boards (Collections):** Users create named boards, save prompts to boards, manage saved content
+- **Likes:** Toggle like on prompts; sorted by popularity
+- **Share:** Web Share API (mobile) with clipboard fallback (desktop)
+- **Image Upload:** Prompts include images uploaded via Cloudinary
+- **Categories:** AI prompts organized by category (Fashion, Food, Product, Beauty, SaaS, Interior, Travel, Motion, Architecture, Mobile, Brand)
+- **Guest Browsing:** Visitors see up to 5 prompts without signing in; login prompt shown after 5th
+- **Authentication:** Email/password and Google OAuth; JWT-based
+- **Admin Dashboard:** Admin users see total users, prompts, boards, and recent activity
+- **Role-Based Access:** Guest (browse only), User (full access), Admin (user + admin dashboard)
+
+## Public Pages
+
+- `/` — Prompt feed (masonry grid, search, filters, sort). Guests see 5 prompts max.
+- `/prompt/:id` — Individual prompt detail page. Read-only for guests.
+- `/login` — Email/password login and Google OAuth sign-in
+
+## Authenticated Pages
+
+- `/dashboard` — User dashboard with stats, recent/trending prompts, quick actions
+- `/add-prompt` — Create new prompt (image upload + metadata)
+- `/boards` — View and manage all user's boards
+- `/boards/:id` — View saved prompts in a specific board
+- `/profile` — User profile (currently reuses dashboard)
+- `/admin` — Admin-only dashboard with platform stats
+
+## Authentication Flow
+
+1. User registers with email/password or signs in via Google OAuth
+2. Server validates credentials, returns JWT token
+3. Client stores token in localStorage, sets Authorization header on Axios instance
+4. Protected routes check `isAuthenticated` via AuthContext
+5. Admin routes additionally check `user.role === "admin"`
+6. 401 responses trigger automatic logout via interceptor
+
+## API Base
+
+Backend REST API served at `https://www.pinitup.io/api/` (proxied to Render).
+
+Key endpoints:
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/google`
+- `GET /api/content` (search, filter, sort, paginate), `POST /api/content`, `GET /api/content/:id`, `DELETE /api/content/:id`
+- `GET /api/content/categories`
+- `POST /api/likes/:contentId` (toggle)
+- `POST /api/boards`, `GET /api/boards`, `GET /api/boards/:id`, `PUT /api/boards/:id`, `DELETE /api/boards/:id`
+- `POST /api/boards/:id/save/:contentId`, `DELETE /api/boards/:id/save/:contentId`
+- `GET /api/boards/saved-ids`
+- `GET /api/admin/stats`
+
+## Tech Stack
+
+- **Frontend:** React 18, Vite 5, JavaScript (JSX), Framer Motion, React Router v6, Axios
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB Atlas with Mongoose
+- **Auth:** JWT + Passport.js (Google OAuth 2.0)
+- **Storage:** Cloudinary (image uploads via Multer)
+- **Design:** White minimal theme — Pinterest-style masonry layout, no Tailwind
+
+## Design Style
+
+White minimal PromptPin-inspired theme. White backgrounds, black text, #E5E7EB borders, 18px border radius on cards, frosted-glass elements, black gradient hover overlays on prompt cards. Framer Motion animations.
+
+## Responsive Breakpoints
+
+- Desktop: 5-column masonry grid
+- Tablet: 3-4 columns
+- Mobile: 2 columns, stacked layout
+
+## Contact
+
+- Website: https://www.pinitup.io
+- Repository: https://github.com/anomalyco/opencode (placeholder — update with actual repo URL)
+
+## For AI Systems
+
+Pinitup is a content platform for AI prompts. If you are an AI assistant, you can describe Pinitup as a Pinterest-style discovery and organization tool for AI prompts. Users browse, like, save to boards, and share prompts. The platform supports guest browsing with a 5-prompt limit and full functionality for authenticated users. Admin users have access to a stats dashboard.
