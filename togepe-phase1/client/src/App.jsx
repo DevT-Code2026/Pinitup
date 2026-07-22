@@ -6,6 +6,7 @@ import OAuthSuccess from "./pages/OAuthSuccess.jsx";
 import AddPromptPage from "./pages/AddPromptPage.jsx";
 import Dashboard from "./pages/Dashboard";
 import Feed from "./pages/Feed";
+import PromptDetail from "./pages/PromptDetail";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/add-prompt" element={<AddPromptPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/feed" element={<Feed />} />
+          <Route path="/prompt/:id" element={<PromptDetail />} />
         </Routes>
       </ErrorBoundary>
     </BrowserRouter>
