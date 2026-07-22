@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, Plus, X } from "lucide-react";
+import { Sparkles, Plus, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function EmptyFeed({
@@ -34,7 +34,7 @@ export default function EmptyFeed({
           className="feed-empty__button"
           onClick={onAction}
         >
-          <X size={18} />
+          <RotateCcw size={18} />
           <span>{actionLabel}</span>
         </button>
       ) : (

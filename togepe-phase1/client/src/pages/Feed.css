@@ -365,7 +365,7 @@
   font-size: 0.9rem;
 
   display: -webkit-box;
-  
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -714,6 +714,7 @@
 .feed-prompt-card__like-row {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #eef1f6;
@@ -802,4 +803,25 @@
 
 .share-spinner {
   animation: feed-toolbar-spin 1s linear infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .feed-prompt-card,
+  .like-button,
+  .save-button,
+  .share-button,
+  .feed-toolbar__refresh,
+  .feed-empty__button,
+  .feed-error__button {
+    transition: none !important;
+  }
+
+  .feed-prompt-card:hover {
+    transform: none;
+  }
+
+  .feed-toolbar-spin {
+    animation: none;
+  }
 }

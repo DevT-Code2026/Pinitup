@@ -135,7 +135,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Known Bugs
 
-- None critical after auth refactor
+- None critical
 
 ## Decisions Taken
 
@@ -181,7 +181,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Current Phase
 
-Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Core CRUD operational
+Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Share + Delete + UI/UX Polish operational
 
 ## Next Tasks
 
@@ -273,8 +273,60 @@ Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Core CRUD operat
    - Frontend: PromptGrid updated to pass `onShare` through to PromptCard
    - Frontend: Feed.jsx wires `onShare` callback to trigger success toast ("Link copied to clipboard!")
    - CSS: `.share-button` pill-shaped (green tint on hover), `.share-button--small` icon-only variant, `.share-spinner` animation
-   - No backend changes needed — share URL is purely client-side construction using existing `/prompt/:id` route
+    - No backend changes needed — share URL is purely client-side construction using existing `/prompt/:id` route
+    - Verified clean production build
+- **UI/UX polish pass (accessibility & bug fixes):**
+   - Fixed critical comma operator bug in Feed.jsx (`return next, { replace: true }` → `setSearchParams(next, { replace: true })`) — URL params never updated when filters changed
+   - Fixed stale state bug in Feed.jsx — `isInitialLoad.current = false` moved from `finally` to success path; `finally` block preserved stale state after failed load
+   - Fixed missing gap in `.feed-prompt-card__like-row` CSS (buttons were flush)
+   - Fixed `-webkit-line-clamp: 3` missing in Feed.css and Dashboard.css (broken text truncation)
+   - Created `LoginPage.css` with `.login-input:focus` purple ring, replaced inline `outline: "none"`
+   - Updated `TagInput.jsx` — focus ring, case-insensitive duplicate detection, `aria-label`
+   - Fixed touch-device remove button visibility in Boards.css (`@media (hover: none)` opacity fallback)
+   - Fixed modal overflow in Boards.css (`overflow-y: auto`, `-webkit-backdrop-filter`)
+   - Added `stm-input:focus` box-shadow ring in Boards.css
+   - Added `prefers-reduced-motion` in Feed.css
+   - Added Escape key + focus trap to SaveToBoardModal (returns focus on close)
+   - Added Escape key to all delete confirmation modals (PromptDetail, Boards.jsx)
+   - Removed overlay click dismiss from destructive modals (PromptDetail delete, Boards delete)
+   - Added `role="dialog"` + `aria-modal="true"` to all modals
+   - Added `aria-label` to all icon-only buttons (Navbar hamburger, bell, Sidebar close, all modal close buttons)
+   - Added `role="search"` to FeedToolbar search container
+   - Added `aria-pressed` to category filter chips
+   - Added `role="menu"` + `role="menuitem"` to UserMenu dropdown
+   - Added `aria-haspopup` + `aria-expanded` to UserMenu trigger
+   - Fixed EmptyFeed wrong icon — clear-filters variant uses `RotateCcw`
+   - Added `setTimeout` cleanup via `useRef` in PromptDetail (prevents post-unmount navigation)
+   - Boards.jsx — stacked modal Escape handling, form input aria-labels, flex-wrap on create-actions
    - Verified clean production build
+
+### Phase 1 — UI/UX Polish & Accessibility
+- Fixed critical comma operator bug in `Feed.jsx` — URL params were never updating (`return next, { replace: true }` → `setSearchParams(next, { replace: true })`)
+- Fixed `Feed.jsx` stale state after failed initial load (`isInitialLoad.current = false` moved from finally to success path)
+- Fixed missing gap in `.feed-prompt-card__like-row` (buttons were flush together)
+- Fixed broken `-webkit-line-clamp: 3` in `Feed.css` and `Dashboard.css`
+- Created `LoginPage.css` with `.login-input` focus styles (purple ring), replaced inline `outline: "none"`
+- Updated `TagInput.jsx` — focus ring, case-insensitive duplicate detection, `aria-label`
+- Fixed Boards.css invisible remove button on touch devices (`@media (hover: none)` fallback)
+- Fixed Boards.css modal `overflow: hidden` → `overflow-y: auto`; added `-webkit-backdrop-filter`
+- Fixed `stm-input:focus` box-shadow ring in Boards.css
+- Added `prefers-reduced-motion` support in `Feed.css`
+- Added Escape key + focus trap to `SaveToBoardModal` (returns focus to trigger on close)
+- Added Escape key handling to delete confirmation modals (PromptDetail, Boards)
+- Fixed delete modal overlay click — no longer dismisses destructive modals via overlay
+- Added `role="dialog"` + `aria-modal="true"` to all modals (SaveToBoard, PromptDetail delete, Boards create/edit/delete)
+- Added `aria-label` to all icon-only buttons (Navbar hamburger `aria-label="Open menu"`, bell `aria-label="Notifications"`, Sidebar close `aria-label="Close sidebar"`, all modal close buttons)
+- Added `role="search"` to FeedToolbar search container
+- Added `aria-pressed` to category filter chips
+- Added `aria-haspopup` + `aria-expanded` to UserMenu trigger button
+- Added `role="menu"` + `role="menuitem"` to UserMenu dropdown
+- Removed hover-dependent JS from UserMenu dropdown (pure CSS now)
+- Fixed `EmptyFeed` wrong icon — clear-filters variant now uses `RotateCcw` instead of `X`
+- Added `setTimeout` cleanup on unmount via `useRef` in PromptDetail (prevents navigation after unmount)
+- Fixed Boards.jsx modal Escape key — stacked modals handled in priority order (delete > edit > create)
+- Added `aria-label` to all Boards.jsx modal form inputs
+- Added `flex-wrap` to `.stm-create-actions` + viewport overflow support for short screens
+- Verified clean production build
 
 ## Developer Notes
 

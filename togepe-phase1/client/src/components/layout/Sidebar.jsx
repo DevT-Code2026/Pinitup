@@ -77,6 +77,7 @@ export default function Sidebar({
               >
                 <button
                   onClick={onClose}
+                  aria-label="Close sidebar"
                   style={{
                     width: 40,
                     height: 40,

@@ -323,6 +323,13 @@
   background: #fef2f2;
 }
 
+/* Always show remove button on touch devices (no hover) */
+@media (hover: none) {
+  .board-detail-remove-btn {
+    opacity: 1;
+  }
+}
+
 /* ==========================
    Save to Board Modal (shared)
 ========================== */
@@ -336,6 +343,7 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   padding: 24px;
 }
 
@@ -345,7 +353,7 @@
   width: 100%;
   max-width: 420px;
   max-height: 80vh;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
@@ -531,13 +539,25 @@
 
 .stm-input:focus {
   border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .stm-create-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 6px;
+}
+
+@supports (max-height: 500px) {
+  .stm-modal {
+    max-height: 95vh;
+  }
+
+  .stm-create-actions {
+    padding-top: 4px;
+  }
 }
 
 .stm-btn {

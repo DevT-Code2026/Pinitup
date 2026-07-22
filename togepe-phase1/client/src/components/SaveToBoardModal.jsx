@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Check, FolderOpen, Loader2 } from "lucide-react";
 import api from "../services/api";
@@ -13,6 +13,9 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const modalRef = useRef(null);
+  const previousFocus = useRef(null);
+
   useEffect(() => {
     if (!open || !contentId) return;
     setError("");
@@ -20,12 +23,63 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
     setNewName("");
     setNewDesc("");
     setLoading(true);
+    previousFocus.current = document.activeElement;
     api
       .get("/boards", { params: { contentId } })
       .then((res) => setBoards(res.data.boards || []))
       .catch(() => setError("Failed to load boards"))
       .finally(() => setLoading(false));
   }, [open, contentId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleEscape = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const modal = modalRef.current;
+    if (!modal) return;
+    const focusable = modal.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length) focusable[0].focus();
+  }, [open, showCreate]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleTab = (e) => {
+      if (e.key !== "Tab") return;
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleTab);
+    return () => document.removeEventListener("keydown", handleTab);
+  }, [open, showCreate]);
+
+  useEffect(() => {
+    if (open) return;
+    if (previousFocus.current && previousFocus.current.focus) {
+      previousFocus.current.focus();
+    }
+  }, [open]);
 
   const handleToggle = async (board) => {
     setSaving(board._id);
@@ -76,8 +130,6 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
     }
   };
 
-  if (!open) return null;
-
   return (
     <AnimatePresence>
       {open && (
@@ -87,8 +139,12 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Save to board"
         >
           <motion.div
+            ref={modalRef}
             className="stm-modal"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -103,7 +159,7 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
               </button>
             </div>
 
-            {error && <div className="stm-error">{error}</div>}
+            {error && <div className="stm-error" role="alert">{error}</div>}
 
             {loading ? (
               <div className="stm-loading">
@@ -120,6 +176,7 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
                         className={`stm-board-item${board.isSaved ? " stm-board-item--saved" : ""}`}
                         onClick={() => handleToggle(board)}
                         disabled={saving !== null}
+                        aria-label={`${board.isSaved ? "Remove from" : "Save to"} ${board.name}`}
                       >
                         <div
                           className={`stm-board-icon${board.isSaved ? " stm-board-icon--saved" : ""}`}
@@ -167,6 +224,7 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
                       onChange={(e) => setNewName(e.target.value)}
                       autoFocus
                       required
+                      aria-label="Board name"
                     />
                     <input
                       type="text"
@@ -174,6 +232,7 @@ export default function SaveToBoardModal({ open, contentId, onClose, onSaved }) 
                       placeholder="Description (optional)"
                       value={newDesc}
                       onChange={(e) => setNewDesc(e.target.value)}
+                      aria-label="Board description"
                     />
                     <div className="stm-create-actions">
                       <button

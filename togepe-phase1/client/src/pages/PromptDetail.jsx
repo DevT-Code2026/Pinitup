@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -53,6 +53,13 @@ export default function PromptDetail() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const deleteTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    };
+  }, []);
 
   const fetchPrompt = async () => {
     try {
@@ -122,7 +129,7 @@ export default function PromptDetail() {
       await api.delete(`/content/${prompt._id}`);
       setConfirmDeleteOpen(false);
       setToast({ message: "Prompt deleted", type: "success" });
-      setTimeout(() => navigate("/feed"), 800);
+      deleteTimerRef.current = setTimeout(() => navigate("/feed"), 800);
     } catch (err) {
       setConfirmDeleteOpen(false);
       setToast({
@@ -390,7 +397,9 @@ export default function PromptDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => !deleting && setConfirmDeleteOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm delete"
           >
             <motion.div
               className="stm-modal stm-modal--sm"
@@ -405,6 +414,7 @@ export default function PromptDetail() {
                   className="stm-close"
                   onClick={() => !deleting && setConfirmDeleteOpen(false)}
                   disabled={deleting}
+                  aria-label="Close"
                 >
                   <X size={20} />
                 </button>

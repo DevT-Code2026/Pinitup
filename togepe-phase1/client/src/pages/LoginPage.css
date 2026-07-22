@@ -1,0 +1,20 @@
+.login-input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #2b2b35;
+  background: #0b0b0f;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-input:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+}
+
+.login-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

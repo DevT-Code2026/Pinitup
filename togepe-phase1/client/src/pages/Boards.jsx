@@ -30,6 +30,17 @@ export default function Boards() {
   const [deleteBoard, setDeleteBoard] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key !== "Escape") return;
+      if (deleteBoard && !deleting) setDeleteBoard(null);
+      else if (editBoard) setEditBoard(null);
+      else if (showCreate) setShowCreate(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showCreate, editBoard, deleteBoard, deleting]);
+
   const fetchBoards = useCallback(async () => {
     try {
       setError("");
@@ -191,6 +202,9 @@ export default function Boards() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowCreate(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create board"
           >
             <motion.div
               className="stm-modal"
@@ -201,7 +215,7 @@ export default function Boards() {
             >
               <div className="stm-header">
                 <h2 className="stm-title">Create Board</h2>
-                <button className="stm-close" onClick={() => setShowCreate(false)}>
+                <button className="stm-close" onClick={() => setShowCreate(false)} aria-label="Close">
                   <X size={20} />
                 </button>
               </div>
@@ -214,6 +228,7 @@ export default function Boards() {
                   onChange={(e) => setCreateName(e.target.value)}
                   autoFocus
                   required
+                  aria-label="Board name"
                 />
                 <input
                   type="text"
@@ -221,6 +236,7 @@ export default function Boards() {
                   placeholder="Description (optional)"
                   value={createDesc}
                   onChange={(e) => setCreateDesc(e.target.value)}
+                  aria-label="Board description"
                 />
                 <div className="stm-create-actions">
                   <button
@@ -253,6 +269,9 @@ export default function Boards() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setEditBoard(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit board"
           >
             <motion.div
               className="stm-modal"
@@ -263,7 +282,7 @@ export default function Boards() {
             >
               <div className="stm-header">
                 <h2 className="stm-title">Edit Board</h2>
-                <button className="stm-close" onClick={() => setEditBoard(null)}>
+                <button className="stm-close" onClick={() => setEditBoard(null)} aria-label="Close">
                   <X size={20} />
                 </button>
               </div>
@@ -276,6 +295,7 @@ export default function Boards() {
                   onChange={(e) => setEditName(e.target.value)}
                   autoFocus
                   required
+                  aria-label="Board name"
                 />
                 <input
                   type="text"
@@ -283,6 +303,7 @@ export default function Boards() {
                   placeholder="Description (optional)"
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
+                  aria-label="Board description"
                 />
                 <div className="stm-create-actions">
                   <button
@@ -314,7 +335,9 @@ export default function Boards() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setDeleteBoard(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm delete board"
           >
             <motion.div
               className="stm-modal stm-modal--sm"
@@ -325,7 +348,7 @@ export default function Boards() {
             >
               <div className="stm-header">
                 <h2 className="stm-title">Delete Board</h2>
-                <button className="stm-close" onClick={() => setDeleteBoard(null)}>
+                <button className="stm-close" onClick={() => !deleting && setDeleteBoard(null)} disabled={deleting} aria-label="Close">
                   <X size={20} />
                 </button>
               </div>
@@ -336,6 +359,7 @@ export default function Boards() {
                 <button
                   className="stm-btn stm-btn--ghost"
                   onClick={() => setDeleteBoard(null)}
+                  disabled={deleting}
                 >
                   Cancel
                 </button>

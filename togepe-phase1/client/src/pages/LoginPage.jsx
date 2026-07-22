@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import "./LoginPage.css";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -66,15 +67,7 @@ function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #2B2B35",
-              background: "#0B0B0F",
-              color: "#fff",
-              fontSize: 14,
-              outline: "none",
-            }}
+            className="login-input"
           />
           <input
             type="password"
@@ -83,15 +76,7 @@ function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #2B2B35",
-              background: "#0B0B0F",
-              color: "#fff",
-              fontSize: 14,
-              outline: "none",
-            }}
+            className="login-input"
           />
           {error && (
             <p style={{

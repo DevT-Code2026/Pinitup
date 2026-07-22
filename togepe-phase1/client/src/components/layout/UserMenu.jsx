@@ -10,14 +10,13 @@ export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
-  const displayName = user?.name || "Creator";
+  const displayName = user?.name || "User";
   const displayEmail = user?.email || "";
 
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
     displayName
   )}&background=7C3AED&color=fff`;
 
-  // Close on outside click.
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -28,6 +27,15 @@ export default function UserMenu() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open]);
 
   const handleLogout = () => {
     setOpen(false);
@@ -50,9 +58,9 @@ export default function UserMenu() {
         }}
         aria-haspopup="true"
         aria-expanded={open}
+        aria-label="User menu"
       >
-        <motion.img
-          whileHover={{ scale: 1.08 }}
+        <img
           src={avatarUrl}
           alt={displayName}
           style={{
@@ -81,6 +89,8 @@ export default function UserMenu() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
+            role="menu"
+            aria-label="User menu"
             style={{
               position: "absolute",
               right: 0,
@@ -110,6 +120,7 @@ export default function UserMenu() {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}
+                title={displayName}
               >
                 {displayName}
               </div>
@@ -123,6 +134,7 @@ export default function UserMenu() {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}
+                  title={displayEmail}
                 >
                   {displayEmail}
                 </div>
@@ -131,6 +143,7 @@ export default function UserMenu() {
 
             <button
               onClick={handleLogout}
+              role="menuitem"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -145,6 +158,7 @@ export default function UserMenu() {
                 fontSize: 14,
                 cursor: "pointer",
                 textAlign: "left",
+                transition: "background 0.15s",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.1)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}

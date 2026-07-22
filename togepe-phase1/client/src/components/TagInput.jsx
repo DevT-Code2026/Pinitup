@@ -1,13 +1,12 @@
 import { useState } from "react";
 
-// Reusable "type and press Enter to add a chip" tag input. Returns an
-// array of strings via onChange — not tied to any specific form.
 function TagInput({ tags, onChange, placeholder = "Add a tag and press Enter" }) {
   const [draft, setDraft] = useState("");
+  const [focused, setFocused] = useState(false);
 
   const addTag = () => {
     const value = draft.trim();
-    if (value && !tags.includes(value)) {
+    if (value && !tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
       onChange([...tags, value]);
     }
     setDraft("");
@@ -22,7 +21,6 @@ function TagInput({ tags, onChange, placeholder = "Add a tag and press Enter" })
       e.preventDefault();
       addTag();
     } else if (e.key === "Backspace" && !draft && tags.length > 0) {
-      // Quick-remove the last chip when backspacing on an empty input.
       onChange(tags.slice(0, -1));
     }
   };
@@ -33,9 +31,11 @@ function TagInput({ tags, onChange, placeholder = "Add a tag and press Enter" })
         display: "flex",
         flexWrap: "wrap",
         gap: "0.4rem",
-        border: "1px solid #ccc",
+        border: focused ? "1px solid #4f46e5" : "1px solid #ccc",
         borderRadius: 6,
         padding: "0.5rem",
+        boxShadow: focused ? "0 0 0 3px rgba(79, 70, 229, 0.15)" : "none",
+        transition: "border-color 0.2s, box-shadow 0.2s",
       }}
     >
       {tags.map((tag) => (
@@ -56,7 +56,15 @@ function TagInput({ tags, onChange, placeholder = "Add a tag and press Enter" })
             type="button"
             onClick={() => removeTag(tag)}
             aria-label={`Remove tag ${tag}`}
-            style={{ background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              lineHeight: 1,
+              padding: "2px 4px",
+              borderRadius: 4,
+              fontSize: "0.9rem",
+            }}
           >
             ×
           </button>
@@ -67,8 +75,10 @@ function TagInput({ tags, onChange, placeholder = "Add a tag and press Enter" })
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={addTag}
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); addTag(); }}
         placeholder={tags.length === 0 ? placeholder : ""}
+        aria-label="Add a tag"
         style={{ border: "none", outline: "none", flex: 1, minWidth: 120 }}
       />
     </div>

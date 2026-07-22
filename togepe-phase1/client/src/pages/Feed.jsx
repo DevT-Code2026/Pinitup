@@ -69,18 +69,16 @@ export default function Feed() {
     debounceTimer.current = setTimeout(() => {
       debouncedSearchRef.current = searchQuery;
       const trimmed = searchQuery.trim();
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (trimmed) next.set("q", trimmed);
-        else next.delete("q");
-        return next, { replace: true };
-      });
+      const next = new URLSearchParams(searchParams);
+      if (trimmed) next.set("q", trimmed);
+      else next.delete("q");
+      setSearchParams(next, { replace: true });
     }, 400);
 
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [searchQuery, setSearchParams]);
+  }, [searchQuery, searchParams, setSearchParams]);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -117,6 +115,8 @@ export default function Feed() {
           });
           return ids;
         });
+
+        isInitialLoad.current = false;
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || "Unable to load the feed.");
@@ -124,7 +124,6 @@ export default function Feed() {
         setLoading(false);
         setRefreshing(false);
         setSearching(false);
-        isInitialLoad.current = false;
       }
     },
     [activeCategory, sortBy]
@@ -168,8 +167,8 @@ export default function Feed() {
         const next = new URLSearchParams(prev);
         if (cat && cat !== "All") next.set("category", cat);
         else next.delete("category");
-        return next, { replace: true };
-      });
+        return next;
+      }, { replace: true });
     },
     [setSearchParams]
   );
@@ -181,8 +180,8 @@ export default function Feed() {
         const next = new URLSearchParams(prev);
         if (sort && sort !== "newest") next.set("sort", sort);
         else next.delete("sort");
-        return next, { replace: true };
-      });
+        return next;
+      }, { replace: true });
     },
     [setSearchParams]
   );

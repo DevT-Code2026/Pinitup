@@ -77,6 +77,7 @@ export default function Navbar({
         >
           <button
             onClick={onMenuClick}
+            aria-label="Open menu"
             style={{
               display: "flex",
               alignItems: "center",
@@ -220,6 +221,7 @@ export default function Navbar({
           </div>
 
           <button
+            aria-label="Notifications"
             style={{
               width: 44,
               height: 44,

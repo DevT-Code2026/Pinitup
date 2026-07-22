@@ -41,7 +41,7 @@ export default function FeedToolbar({
       transition={{ duration: 0.3 }}
     >
       <div className="feed-toolbar__top">
-        <div className="feed-toolbar__search">
+        <div className="feed-toolbar__search" role="search" aria-label="Search prompts">
           {isSearching ? (
             <Loader2
               size={18}
@@ -144,6 +144,7 @@ export default function FeedToolbar({
               key={category}
               type="button"
               onClick={() => onCategoryChange?.(category)}
+              aria-pressed={activeCategory === category}
               className={`feed-toolbar__chip ${
                 activeCategory === category
                   ? "feed-toolbar__chip--active"
