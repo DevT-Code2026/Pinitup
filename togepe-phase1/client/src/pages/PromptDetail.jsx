@@ -14,6 +14,7 @@ import {
   Trash2,
   Loader2,
   X,
+  Share2,
 } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
@@ -22,6 +23,7 @@ import LikeButton from "../components/LikeButton.jsx";
 import SaveToBoardModal from "../components/SaveToBoardModal";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext.jsx";
+import sharePrompt from "../utils/sharePrompt.js";
 
 import api from "../services/api";
 
@@ -50,6 +52,7 @@ export default function PromptDetail() {
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const fetchPrompt = async () => {
     try {
@@ -128,6 +131,21 @@ export default function PromptDetail() {
       });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (sharing || !prompt) return;
+    setSharing(true);
+    try {
+      const result = await sharePrompt(prompt);
+      if (result.success && result.method === "clipboard") {
+        setToast({ message: "Link copied to clipboard!", type: "success" });
+      }
+    } catch {
+      // silent
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -273,6 +291,20 @@ export default function PromptDetail() {
             >
               {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
               Save to Board
+            </button>
+            <button
+              type="button"
+              className="share-button"
+              onClick={handleShare}
+              disabled={sharing}
+              aria-label="Share prompt"
+            >
+              {sharing ? (
+                <Loader2 size={16} className="share-spinner" />
+              ) : (
+                <Share2 size={16} />
+              )}
+              Share
             </button>
             {isOwner && (
               <button

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { CalendarDays, Tag, ArrowRight, Bookmark, BookmarkCheck } from "lucide-react";
+import { CalendarDays, Tag, ArrowRight, Bookmark, BookmarkCheck, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import LikeButton from "../LikeButton.jsx";
+import sharePrompt from "../../utils/sharePrompt.js";
 
 export default function PromptCard({
   prompt,
@@ -12,7 +14,9 @@ export default function PromptCard({
   saved = false,
   onToggleLike,
   onSave,
+  onShare,
 }) {
+  const [sharing, setSharing] = useState(false);
   const formatDate = (date) => {
     if (!date) return "Recently";
 
@@ -31,6 +35,23 @@ export default function PromptCard({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onClick(e);
+    }
+  };
+
+  const handleShare = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const result = await sharePrompt(prompt);
+      if (result.success && result.method === "clipboard") {
+        onShare?.("Link copied to clipboard!");
+      }
+    } catch {
+      // silent — sharePrompt handles all failures internally
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -104,6 +125,15 @@ export default function PromptCard({
               Save
             </button>
           )}
+          <button
+            type="button"
+            className="share-button share-button--small"
+            onClick={handleShare}
+            disabled={sharing}
+            aria-label="Share prompt"
+          >
+            <Share2 size={14} />
+          </button>
         </div>
 
         {isInteractive && (

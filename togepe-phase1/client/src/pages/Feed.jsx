@@ -228,6 +228,7 @@ export default function Feed() {
         savedIds={savedIds}
         onToggleLike={handleToggleLike}
         onSave={setSaveToBoardContentId}
+        onShare={(msg) => setToast({ message: msg, type: "success" })}
       />
     );
   }

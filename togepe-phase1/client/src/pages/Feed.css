@@ -766,3 +766,40 @@
   border-color: #93c5fd;
   color: #2563eb;
 }
+
+/* Share button (shared by PromptCard and PromptDetail) */
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #e7ebf3;
+  border-radius: 999px;
+  background: #f6f8fc;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.share-button:hover {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
+}
+
+.share-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.share-button--small {
+  padding: 5px 8px;
+  font-size: 0;
+  gap: 0;
+}
+
+.share-spinner {
+  animation: feed-toolbar-spin 1s linear infinite;
+}

@@ -105,6 +105,15 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - Frontend: Navbar search bar connected to Feed via URL params (Enter navigates to `/feed?q=...`)
 - Frontend: FeedToolbar updated with "Most Saved" sort option
 
+### Phase 1 — Share
+- Frontend: `sharePrompt` utility (`utils/sharePrompt.js`) — builds canonical URL, tries Web Share API first, falls back to clipboard copy, returns `{ success, method }` for caller to decide toast behavior
+- Frontend: PromptCard — Share icon button (icon-only, small variant) in the like-row, triggers toast via `onShare` callback
+- Frontend: PromptDetail — Share button (icon + label) in actions bar, triggers toast directly
+- Frontend: PromptGrid updated to pass `onShare` through to PromptCard
+- Frontend: Feed.jsx wires `onShare` to trigger success toast
+- CSS: `.share-button` pill-shaped button (green tint on hover, matching existing conventions), `.share-button--small` icon-only variant, `.share-spinner` animation
+- No backend changes — share URL is `{origin}/prompt/{id}` (existing protected route)
+
 ### Auth Architecture (as of latest commit)
 - `AuthProvider` wraps `<App />` in `main.jsx` — single source of truth
 - `LoginPage` and `OAuthSuccess` call `AuthContext.login()` (no direct localStorage writes)
@@ -256,6 +265,15 @@ Phase 1 Complete — Auth + Likes + Boards + Search & Filters + Core CRUD operat
    - Frontend: Navbar search bar connected to Feed via URL params — Enter navigates to `/feed?q=...`
    - Frontend: FeedToolbar updated with "Most Saved" sort option
    - CSS: Added `.feed-toolbar__active-filters`, `.feed-toolbar__active-pill`, `.feed-toolbar__clear-btn` styles
+   - Verified clean production build
+- **Share functionality:**
+   - Frontend: Created `utils/sharePrompt.js` — reusable share utility that builds URL from origin + `/prompt/` + id, tries Web Share API (mobile), falls back to clipboard copy (desktop), handles AbortError gracefully
+   - Frontend: PromptCard — added Share2 icon button (icon-only small variant) in the like-row, wired `onShare` prop for toast callback from Feed
+   - Frontend: PromptDetail — added Share button (icon + label) in actions bar, triggers toast directly via local `handleShare`
+   - Frontend: PromptGrid updated to pass `onShare` through to PromptCard
+   - Frontend: Feed.jsx wires `onShare` callback to trigger success toast ("Link copied to clipboard!")
+   - CSS: `.share-button` pill-shaped (green tint on hover), `.share-button--small` icon-only variant, `.share-spinner` animation
+   - No backend changes needed — share URL is purely client-side construction using existing `/prompt/:id` route
    - Verified clean production build
 
 ## Developer Notes

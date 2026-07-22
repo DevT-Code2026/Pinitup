@@ -1,6 +1,6 @@
 import PromptCard from "./PromptCard";
 
-export default function PromptGrid({ prompts = [], likedIds, savedIds, onToggleLike, onSave }) {
+export default function PromptGrid({ prompts = [], likedIds, savedIds, onToggleLike, onSave, onShare }) {
   return (
     <div className="feed-prompt-grid">
       {prompts.map((prompt, index) => (
@@ -13,6 +13,7 @@ export default function PromptGrid({ prompts = [], likedIds, savedIds, onToggleL
           saved={savedIds?.has(prompt._id)}
           onToggleLike={onToggleLike}
           onSave={onSave}
+          onShare={onShare}
         />
       ))}
     </div>
