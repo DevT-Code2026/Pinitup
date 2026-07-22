@@ -269,6 +269,9 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - GuestFeedCTA uses `column-span: all` to break out of masonry columns as full-width block
 - Demo content (48 prompts) serves as default feed when API is empty; server data always takes priority
 - Category thumbnails use image backgrounds (picsum.photos) with white pill labels — not text-only chips
+- CORS uses comma-separated `CLIENT_URL` env var parsed into an allowlist — supports multiple production origins (www.pinitup.io, pinitup.io, pinitup-ten.vercel.app) plus localhost dev; no-origin requests (curl, server-to-server) always allowed; `credentials: true` for cookie/auth header forwarding
+- `VITE_API_URL` must be set in Vercel env vars at build time — client falls back to localhost otherwise; console warning added when missing
+- `GOOGLE_CALLBACK_URL` on Render must match the deployed backend URL (not localhost) for OAuth to work in production
 
 ## Database Schema Summary
 
@@ -302,16 +305,18 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Current Phase
 
-Phase 2 — PromptPin UI Overhaul Complete; Production build passes
+Phase 2 — Production Deployment Fix (CORS + env vars)
 
 ## Next Tasks
 
-1. User profile page (proper implementation, not Dashboard reuse)
-2. Settings page
-3. 404 page (catch-all now redirects to `/`)
-4. Prompt detail page styling update to match PromptPin white theme
-5. Responsive navbar mobile hamburger menu
-6. Production-quality category thumbnail images (replace picsum.photos placeholders)
+1. Set `VITE_API_URL` in Vercel env vars to Render backend URL
+2. Set `CLIENT_URL` (comma-separated) and `GOOGLE_CALLBACK_URL` on Render
+3. User profile page (proper implementation, not Dashboard reuse)
+4. Settings page
+5. 404 page (catch-all now redirects to `/`)
+6. Prompt detail page styling update to match PromptPin white theme
+7. Responsive navbar mobile hamburger menu
+8. Production-quality category thumbnail images (replace picsum.photos placeholders)
 
 ## Daily Progress Log
 
@@ -529,6 +534,9 @@ Phase 2 — PromptPin UI Overhaul Complete; Production build passes
 - No Tailwind — all styling is inline or CSS files
 - Each page independently renders `<Navbar>` and `<Sidebar>` (no shared layout wrapper yet)
 - Server runs on port 501, client on port 5173
+- **Deployment:** Vercel (client) + Render (server); env vars must be set in both dashboards
+- **Vercel env vars:** `VITE_API_URL=https://<render-app>.onrender.com/api` (Production + Preview)
+- **Render env vars:** `CLIENT_URL=https://www.pinitup.io,https://pinitup.io,https://pinitup-ten.vercel.app,http://localhost:5173`, `GOOGLE_CALLBACK_URL=https://<render-app>.onrender.com/api/auth/google/callback`
 
 ## AI Instructions
 
