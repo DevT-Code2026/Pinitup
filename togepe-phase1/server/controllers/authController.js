@@ -55,7 +55,7 @@ export const googleAuthCallback = (req, res) => {
   const user = req.user;
   const token = generateToken(user);
 
-  const redirectUrl = `${process.env.CLIENT_URL}/oauth-success?token=${token}`;
+  const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success?token=${token}`;
   res.redirect(redirectUrl);
 };
 

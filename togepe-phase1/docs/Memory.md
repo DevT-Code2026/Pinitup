@@ -272,6 +272,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - CORS uses comma-separated `CLIENT_URL` env var parsed into an allowlist — supports multiple production origins (www.pinitup.io, pinitup.io, pinitup-ten.vercel.app) plus localhost dev; no-origin requests (curl, server-to-server) always allowed; `credentials: true` for cookie/auth header forwarding
 - `VITE_API_URL` must be set in Vercel env vars at build time — client falls back to localhost otherwise; console warning added when missing
 - `GOOGLE_CALLBACK_URL` on Render must match the deployed backend URL (not localhost) for OAuth to work in production
+- `FRONTEND_URL` is a single origin used exclusively for OAuth redirects (login, oauth-success); never use comma-separated `CLIENT_URL` for redirects — it contains multiple origins and breaks redirect URLs
 
 ## Database Schema Summary
 
@@ -536,7 +537,7 @@ Phase 2 — Production Deployment Fix (CORS + env vars)
 - Server runs on port 501, client on port 5173
 - **Deployment:** Vercel (client) + Render (server); env vars must be set in both dashboards
 - **Vercel env vars:** `VITE_API_URL=https://<render-app>.onrender.com/api` (Production + Preview)
-- **Render env vars:** `CLIENT_URL=https://www.pinitup.io,https://pinitup.io,https://pinitup-ten.vercel.app,http://localhost:5173`, `GOOGLE_CALLBACK_URL=https://<render-app>.onrender.com/api/auth/google/callback`
+- **Render env vars:** `CLIENT_URL=https://www.pinitup.io,https://pinitup.io,https://pinitup-ten.vercel.app,http://localhost:5173`, `FRONTEND_URL=https://www.pinitup.io`, `GOOGLE_CALLBACK_URL=https://<render-app>.onrender.com/api/auth/google/callback`
 
 ## AI Instructions
 
