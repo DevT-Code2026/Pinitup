@@ -23,8 +23,8 @@ const workflowSchema = new mongoose.Schema(
       type: String,
       required: [true, "Provider is required"],
       enum: {
-        values: ["gemini", "openai", "claude"],
-        message: "Provider must be gemini, openai, or claude",
+        values: ["gemini", "openai", "claude", "segmind"],
+        message: "Provider must be gemini, openai, claude, or segmind",
       },
     },
     creditCost: {

@@ -1,35 +1,62 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Gem, Sparkles, Brain, PenTool, Globe } from "lucide-react";
+import {
+  Zap,
+  Gem,
+  Sparkles,
+  Brain,
+  PenTool,
+  Globe,
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  Image,
+  FileText,
+  ArrowRightLeft,
+  Upload,
+  X,
+} from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
-import Sidebar from "../components/layout/Sidebar";
 
 import LoadingSkeleton from "../components/dashboard/LoadingSkeleton";
 import ErrorState from "../components/dashboard/ErrorState";
 
-import { getWorkflows } from "../services/api";
+import { getWorkflows, uploadWorkflowImage, executeWorkflow } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import Toast from "../components/Toast";
 
 import "./Workflows.css";
 
-const PROVIDER_ICONS = {
-  gemini: Sparkles,
-  openai: Brain,
-  claude: PenTool,
+const PROVIDERS = {
+  gemini: { icon: Sparkles, bg: "#eef2ff", color: "#4f46e5", label: "Gemini" },
+  openai: { icon: Brain, bg: "#ecfdf5", color: "#16a34a", label: "OpenAI" },
+  claude: { icon: PenTool, bg: "#fef3c7", color: "#d97706", label: "Claude" },
+  pruna: { icon: Zap, bg: "#fce7f3", color: "#db2777", label: "Pruna" },
+  segmind: { icon: Globe, bg: "#f0fdf4", color: "#15803d", label: "Segmind" },
 };
 
-const PROVIDER_COLORS = {
-  gemini: { bg: "#eef2ff", color: "#4f46e5" },
-  openai: { bg: "#ecfdf5", color: "#16a34a" },
-  claude: { bg: "#fef3c7", color: "#d97706" },
-};
+function getProviderMeta(provider) {
+  return PROVIDERS[provider] || { icon: Globe, bg: "#f3f4f6", color: "#6b7280", label: provider };
+}
 
 export default function Workflows() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [executingMap, setExecutingMap] = useState({});
+  const [resultMap, setResultMap] = useState({});
+  const [errorMap, setErrorMap] = useState({});
+  const [toast, setToast] = useState({ message: "", type: "success" });
   const mountedRef = useRef(true);
+
+  const [fileMap, setFileMap] = useState({});
+  const [previewMap, setPreviewMap] = useState({});
+  const [uploadingMap, setUploadingMap] = useState({});
+  const [uploadErrorMap, setUploadErrorMap] = useState({});
+  const fileInputRefs = useRef({});
+
+  const { credits, isAuthenticated, refreshWallet } = useAuth();
 
   const fetchWorkflows = useCallback(async () => {
     try {
@@ -49,8 +76,117 @@ export default function Workflows() {
   useEffect(() => {
     mountedRef.current = true;
     fetchWorkflows();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      Object.values(previewMap).forEach((url) => URL.revokeObjectURL(url));
+    };
   }, [fetchWorkflows]);
+
+  const handleFileSelect = (slug, file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadErrorMap((prev) => ({ ...prev, [slug]: "Please select an image file" }));
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadErrorMap((prev) => ({ ...prev, [slug]: "Image must be under 10MB" }));
+      return;
+    }
+
+    if (previewMap[slug]) URL.revokeObjectURL(previewMap[slug]);
+
+    const preview = URL.createObjectURL(file);
+    setFileMap((prev) => ({ ...prev, [slug]: file }));
+    setPreviewMap((prev) => ({ ...prev, [slug]: preview }));
+    setUploadErrorMap((prev) => ({ ...prev, [slug]: "" }));
+    setErrorMap((prev) => ({ ...prev, [slug]: "" }));
+  };
+
+  const handleRemoveImage = (slug) => {
+    if (previewMap[slug]) URL.revokeObjectURL(previewMap[slug]);
+    setFileMap((prev) => {
+      const next = { ...prev };
+      delete next[slug];
+      return next;
+    });
+    setPreviewMap((prev) => {
+      const next = { ...prev };
+      delete next[slug];
+      return next;
+    });
+    setUploadErrorMap((prev) => {
+      const next = { ...prev };
+      delete next[slug];
+      return next;
+    });
+    if (fileInputRefs.current[slug]) {
+      fileInputRefs.current[slug].value = "";
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (slug, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelect(slug, file);
+  };
+
+  const handleExecute = async (slug) => {
+    const file = fileMap[slug];
+    if (!file) return;
+
+    setExecutingMap((prev) => ({ ...prev, [slug]: true }));
+    setUploadingMap((prev) => ({ ...prev, [slug]: true }));
+    setErrorMap((prev) => ({ ...prev, [slug]: "" }));
+    setResultMap((prev) => ({ ...prev, [slug]: "" }));
+    setUploadErrorMap((prev) => ({ ...prev, [slug]: "" }));
+
+    try {
+      const uploadRes = await uploadWorkflowImage(file);
+      if (!mountedRef.current) return;
+
+      const imageUrl = uploadRes.data.url;
+      setUploadingMap((prev) => ({ ...prev, [slug]: false }));
+
+      const execRes = await executeWorkflow(slug, { coupleImage: imageUrl });
+      if (!mountedRef.current) return;
+
+      const data = execRes.data;
+
+      if (data.refunded) {
+        setToast({
+          message: `Execution failed. ${data.refundCredits} credits were automatically refunded.`,
+          type: "error",
+        });
+        refreshWallet();
+      } else {
+        setResultMap((prev) => ({ ...prev, [slug]: data.execution }));
+        refreshWallet();
+      }
+    } catch (err) {
+      if (!mountedRef.current) return;
+
+      const isUploadError = err.config?.url?.includes("/workflows/upload");
+      const msg = err.response?.data?.message || "Something went wrong. Please try again.";
+
+      if (isUploadError) {
+        setUploadErrorMap((prev) => ({ ...prev, [slug]: msg }));
+      } else {
+        setErrorMap((prev) => ({ ...prev, [slug]: msg }));
+      }
+    } finally {
+      if (mountedRef.current) {
+        setExecutingMap((prev) => ({ ...prev, [slug]: false }));
+        setUploadingMap((prev) => ({ ...prev, [slug]: false }));
+      }
+    }
+  };
 
   let content;
 
@@ -86,14 +222,23 @@ export default function Workflows() {
         >
           <h1 className="wf-header__title">AI Workflows</h1>
           <p className="wf-header__subtitle">
-            Choose from powerful AI tools to enhance your content creation.
+            Upload an image and let AI transform it for you.
           </p>
         </motion.div>
 
         <div className="wf-grid">
           {workflows.map((wf, index) => {
-            const Icon = PROVIDER_ICONS[wf.provider] || Globe;
-            const providerStyle = PROVIDER_COLORS[wf.provider] || { bg: "#f3f4f6", color: "#6b7280" };
+            const providerMeta = getProviderMeta(wf.provider);
+            const ProviderIcon = providerMeta.icon;
+            const isExecuting = executingMap[wf.slug];
+            const isUploading = uploadingMap[wf.slug];
+            const result = resultMap[wf.slug];
+            const execError = errorMap[wf.slug];
+            const uploadError = uploadErrorMap[wf.slug];
+            const hasFile = Boolean(fileMap[wf.slug]);
+            const preview = previewMap[wf.slug];
+            const insufficientCredits = isAuthenticated && credits !== null && credits < wf.creditCost;
+            const isBusy = isExecuting || isUploading;
 
             return (
               <motion.div
@@ -106,13 +251,21 @@ export default function Workflows() {
                 <div className="wf-card__top">
                   <div
                     className="wf-card__icon"
-                    style={{ background: providerStyle.bg, color: providerStyle.color }}
+                    style={{ background: providerMeta.bg, color: providerMeta.color }}
                   >
-                    <Icon size={22} />
+                    <ProviderIcon size={22} />
                   </div>
-                  <div className="wf-card__cost">
-                    <Gem size={14} />
-                    <span>{wf.creditCost} Credits</span>
+                  <div className="wf-card__badges">
+                    <span
+                      className="wf-card__provider-badge"
+                      style={{ background: providerMeta.bg, color: providerMeta.color }}
+                    >
+                      {providerMeta.label}
+                    </span>
+                    <span className="wf-card__cost-badge">
+                      <Gem size={12} />
+                      {wf.creditCost}
+                    </span>
                   </div>
                 </div>
 
@@ -122,13 +275,153 @@ export default function Workflows() {
                   <p className="wf-card__description">{wf.description}</p>
                 )}
 
+                <div className="wf-card__meta-row">
+                  <div className="wf-card__meta-item">
+                    <Image size={13} />
+                    <span>Image to Image</span>
+                  </div>
+                  <div className="wf-card__meta-item">
+                    <ArrowRightLeft size={13} />
+                    <span>Provider API</span>
+                  </div>
+                </div>
+
+                {!isAuthenticated && (
+                  <div className="wf-card__auth-hint">
+                    Log in to use this workflow
+                  </div>
+                )}
+
+                {isAuthenticated && insufficientCredits && (
+                  <div className="wf-card__insufficient">
+                    <AlertTriangle size={14} />
+                    <span>
+                      Insufficient credits — have {credits ?? 0}, need {wf.creditCost}
+                    </span>
+                  </div>
+                )}
+
+                {isAuthenticated && !result && (
+                  <div className="wf-card__upload-section">
+                    {preview ? (
+                      <div className="wf-card__preview">
+                        <img
+                          src={preview}
+                          alt="Selected input"
+                          className="wf-card__preview-img"
+                        />
+                        {!isBusy && (
+                          <button
+                            className="wf-card__preview-remove"
+                            onClick={() => handleRemoveImage(wf.slug)}
+                            aria-label="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                        {isUploading && (
+                          <div className="wf-card__preview-overlay">
+                            <Loader2 size={20} className="wf-card__spinner" />
+                            <span>Uploading...</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <label
+                        className="wf-card__dropzone"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(wf.slug, e)}
+                      >
+                        <input
+                          ref={(el) => { fileInputRefs.current[wf.slug] = el; }}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="wf-card__file-input"
+                          onChange={(e) => handleFileSelect(wf.slug, e.target.files?.[0])}
+                        />
+                        <Upload size={20} className="wf-card__dropzone-icon" />
+                        <span className="wf-card__dropzone-text">
+                          Drop an image or <span className="wf-card__dropzone-link">browse</span>
+                        </span>
+                        <span className="wf-card__dropzone-hint">
+                          JPG, PNG, WebP — max 10 MB
+                        </span>
+                      </label>
+                    )}
+
+                    {uploadError && (
+                      <div className="wf-card__upload-error">
+                        <AlertTriangle size={13} />
+                        <span>{uploadError}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isAuthenticated && result && (
+                  <div className="wf-card__result">
+                    {result.output?.imageUrl ? (
+                      <div className="wf-card__result-image-wrap">
+                        <img
+                          src={result.output.imageUrl}
+                          alt="Generated output"
+                          className="wf-card__result-image"
+                        />
+                        <div className="wf-card__result-caption">
+                          <CheckCircle size={14} />
+                          <span>Generated successfully</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <CheckCircle size={14} />
+                        <span>{result.output?.message || "Executed successfully"}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {isAuthenticated && execError && (
+                  <div className="wf-card__exec-error">
+                    <AlertTriangle size={14} />
+                    <span>{execError}</span>
+                  </div>
+                )}
+
                 <div className="wf-card__footer">
-                  <span
-                    className="wf-card__provider"
-                    style={{ background: providerStyle.bg, color: providerStyle.color }}
-                  >
-                    {wf.provider}
-                  </span>
+                  {isAuthenticated ? (
+                    <button
+                      className={`wf-card__generate-btn ${result && !isBusy ? "wf-card__generate-btn--success" : ""}`}
+                      disabled={!hasFile || isBusy || insufficientCredits}
+                      onClick={() => handleExecute(wf.slug)}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 size={14} className="wf-card__spinner" />
+                          Uploading...
+                        </>
+                      ) : isExecuting ? (
+                        <>
+                          <Loader2 size={14} className="wf-card__spinner" />
+                          Generating...
+                        </>
+                      ) : result ? (
+                        <>
+                          <CheckCircle size={14} />
+                          Completed
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={14} />
+                          Generate
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="wf-card__login-hint">
+                      Sign in to generate
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );
@@ -140,8 +433,7 @@ export default function Workflows() {
 
   return (
     <div className="wf-page">
-      <Navbar onMenuClick={() => setSidebarOpen(true)} />
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Navbar />
 
       <motion.main
         className="wf-main"
@@ -152,6 +444,12 @@ export default function Workflows() {
           {content}
         </div>
       </motion.main>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </div>
   );
 }

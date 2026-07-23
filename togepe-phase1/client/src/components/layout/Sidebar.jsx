@@ -9,6 +9,7 @@ import {
   X,
   Shield,
   Zap,
+  History,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -19,6 +20,7 @@ const baseMenuItems = [
   { title: "Add Prompt", icon: PlusSquare, path: "/add-prompt" },
   { title: "Boards", icon: FolderKanban, path: "/boards" },
   { title: "Workflows", icon: Zap, path: "/workflows" },
+  { title: "Execution History", icon: History, path: "/executions" },
   { title: "Settings", icon: Settings, path: "/settings" },
 ];
 

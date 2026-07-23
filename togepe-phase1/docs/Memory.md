@@ -300,8 +300,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Pending Features
 
-- Credit deduction on workflow execution (Phase 4)
-- Premium feature spending (Phase 4)
+- Real AI provider integration (replace mock execution in WorkflowExecutionService)
 - Refund system (Phase 5)
 - Payment gateway integration (Phase 6)
 - Admin credit management UI
@@ -342,6 +341,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - **Board:** owner (ref User), name, description, savedContent[] (ref Content), timestamps, unique(owner, name) index — fully implemented
 - **Like:** user (ref User), content (ref Content), unique compound index — fully implemented
 - **CreditTransaction:** user (ref User), type (enum: signup_bonus, purchase, promotion, workflow_generation, refund, admin_adjustment), amount, balanceBefore, balanceAfter, reference (unique + partial index on string type), description, metadata (Mixed), timestamps — indexes: `{ user: 1, createdAt: -1 }`, `{ reference: 1 }` (unique, partialFilterExpression: `{ reference: { $type: "string" } }`)
+- **WorkflowExecution:** user (ref User), workflow (ref Workflow), workflowName, slug, provider, creditsSpent, executionReference (unique), status (enum: queued/running/completed/failed/refunded), input, output, error, startedAt, completedAt, refunded, refundReference, timestamps — indexes: `{ user: 1, createdAt: -1 }`, `{ user: 1, slug: 1, status: 1 }`
 
 ## API Summary
 
@@ -373,24 +373,71 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `POST /api/admin/workflows` — admin-only: create new workflow (name, description, provider, creditCost)
 - `PUT /api/admin/workflows/:id` — admin-only: update workflow
 - `DELETE /api/admin/workflows/:id` — admin-only: soft-delete workflow (sets status to inactive)
+- `POST /api/workflows/:slug/execute` — protected: execute workflow with full lifecycle (queued→running→completed/failed→refunded), deducts credits, idempotent, double-click guard (409)
+- `GET /api/executions?page=1&limit=20` — protected: paginated execution history, newest first
+- `GET /api/executions/:id` — protected: execution detail (owner or admin only)
 
 ## Current Phase
 
-Phase 3 — Workflow Management Complete (Model + Service + Controller + Routes + Seed Script + Public + Admin UI)
+Phase 5 — Execution Reliability, History & Transaction Safety Complete (WorkflowExecution model + lifecycle + idempotency + double-click guard + refund reliability + execution history page + detail modal + refund toast)
 
 ## Next Tasks
 
-1. Phase 4 — Credit Spending (integrate `deductCredits` into workflow generation, premium features, admin adjustments)
-2. Phase 5 — Refund System (refund eligibility, balance restoration)
-3. Phase 6 — Payment Integration (Stripe, credit packs, promo codes)
-4. User profile page (proper implementation, not Dashboard reuse)
-5. Settings page
-6. 404 page (catch-all now redirects to `/`)
-7. Production-quality category thumbnail images (replace picsum.photos placeholders)
+1. Real AI provider integration (Gemini/OpenAI/Claude) replacing mock execution
+2. Phase 6 — Payment Integration (Stripe, credit packs, promo codes)
+3. User profile page (proper implementation, not Dashboard reuse)
+4. Settings page
+5. 404 page (catch-all now redirects to `/`)
+6. Production-quality category thumbnail images (replace picsum.photos placeholders)
 
 ## Daily Progress Log
 
 ### 2026-07-23
+- **Workflow image upload — production-ready implementation:**
+  - Backend: `POST /api/workflows/upload` route with multer (memoryStorage, 10MB, image MIME types) + Cloudinary upload → returns `{ url, publicId }`; upload failure never touches credits
+  - Backend: `uploadWorkflowImage` controller in `workflowController.js` — streams buffer to Cloudinary via `uploadBufferToCloudinary`, folder `pinitup/workflows`
+  - Backend: `SegmindProvider.generate()` now requires `input.coupleImage` (no more placeholder Unsplash URLs); `meme_image` optional via `input.memeImage` or `SEGMIND_MEME_TEMPLATE_URL` env var
+  - Backend: Route ordering in `workflowRoutes.js` — `/upload` before `/:slug/execute` to prevent slug collision
+  - Frontend: `uploadWorkflowImage(file)` API function — FormData POST to `/workflows/upload`
+  - Frontend: Workflows.jsx — full upload UI per card: drag-and-drop dropzone, file picker, image preview with remove button, upload spinner overlay, error display
+  - Frontend: Two-step handleExecute flow — upload to Cloudinary first, then execute with URL in `{ coupleImage }` input
+  - Frontend: Generate button disabled until image selected; shows Uploading... → Generating... → Completed states
+  - Frontend: Upload errors distinguished from execution errors (checked via `err.config.url`)
+  - CSS: Dropzone, preview, remove button, upload overlay, upload error styles in Workflows.css
+  - `.env.example` updated with `SEGMIND_MEME_TEMPLATE_URL`
+  - Both builds verified clean (vite build + server modules load)
+- **Segmind async workflow polling support:**
+  - Rewrote `server/services/providers/segmindProvider.js` — detects `status: QUEUED` with `poll_url` and `request_id`, polls every 2.5s up to 90s timeout
+  - `_poll()` method handles COMPLETED (extract image URL), FAILED (throw → triggers refund), timeout (throw → triggers refund)
+  - Synchronous responses (binary image or COMPLETED JSON) still handled immediately
+  - Logs: poll attempt count, elapsed time, status per poll, final response
+  - Return contract unchanged: `{ imageUrl, rawResponse }` — zero changes to execution service, controllers, wallet, or refund logic
+- **Segmind auth header fix:**
+  - Fixed `server/services/providers/segmindProvider.js` — changed auth header from `Authorization: Bearer ${apiKey}` to `x-api-key: ${apiKey}` (confirmed by official Segmind docs)
+  - Added env var existence logging and masked API key preview (`first4...last4`) for debugging
+  - Backend and frontend builds verified clean
+- **Phase 5 — Execution Reliability, History & Transaction Safety implemented:**
+  - Created `server/models/WorkflowExecution.js` — execution audit trail: user, workflow, workflowName, slug, provider, creditsSpent, executionReference (unique), status (queued/running/completed/failed/refunded), input, output, error, startedAt, completedAt, refunded, refundReference; indexes: `{ user: 1, createdAt: -1 }`, `{ user: 1, slug: 1, status: 1 }`
+  - Rewrote `server/services/workflowExecutionService.js` — full lifecycle: queued→running→completed/failed→refunded; idempotency via unique executionReference; double-click guard (409 if same workflow running); automatic refund on execution failure with audit trail; `getHistory()` paginated; `getById()` owner/admin check; `isRunning()` helper
+  - Created `server/routes/executionRoutes.js` — `GET /` (paginated history), `GET /:id` (detail), both protected
+  - Registered execution routes in `server/server.js` as `/api/executions`
+  - Updated `server/controllers/workflowController.js` — `executeWorkflow` now returns lifecycle result with refunded flag; added `getExecutionHistory` and `getExecutionById` controllers
+  - Extended `client/src/services/api.js` — added `getExecutions(page, limit)` and `getExecutionById(id)`
+  - Created `client/src/pages/ExecutionHistory.jsx` + `ExecutionHistory.css` — paginated list with status badges (gray/blue/green/red/orange), provider icons, credit cost, duration, clickable rows
+  - Created `client/src/components/ExecutionDetailModal.jsx` + `ExecutionDetailModal.css` — full detail modal with status badge, info grid, input/output/error sections, copy-to-clipboard references, escape/overlay dismiss
+  - Updated `client/src/pages/Workflows.jsx` — button states: Generate→Generating...→Completed ✓; refund toast via Toast component; wallet auto-refresh on refund
+  - Updated `client/src/pages/Workflows.css` — `.wf-card__generate-btn--success` green style
+  - Updated `client/src/pages/Wallet.jsx` — transaction type label "Execution" instead of "Workflow Generation"; date format includes time
+  - Updated `client/src/components/layout/Sidebar.jsx` — added "Execution History" nav item with History icon
+  - Updated `client/src/App.jsx` — added `/executions` route (ProtectedRoute)
+  - Verified clean production build (vite build + server --check pass)
+- **Phase 4 — Workflow Execution + Credit Deduction implemented:**
+  - Created `server/services/workflowExecutionService.js` — business logic layer: validate workflow (exists + active), check user credits, deduct via CreditService, execute mock, return result; rollback on execution failure to keep wallet consistent; references use `execution_<uuid>` for uniqueness
+  - Added `POST /api/workflows/:slug/execute` — protected route (JWT required); thin controller in `workflowController.js`; error mapping with `.statusCode` on service errors (404/403/400/500)
+  - Added `executeWorkflow(slug, input)` to `client/src/services/api.js`
+  - Updated `pages/Workflows.jsx` — authenticated users see "Generate" button per card; unauthenticated users see "Log in to use this workflow" hint; insufficient credits users see warning with current/required counts; execution shows loading spinner → success checkmark → error alert; wallet refreshes via `refreshWallet()` after successful execution
+  - Updated `pages/Workflows.css` — `.wf-card__generate-btn` (disabled/loading states), `.wf-card__spinner` (CSS animation), `.wf-card__auth-hint`, `.wf-card__result`, `.wf-card__exec-error`, `.wf-card__insufficient` status messages
+  - Verified clean production build (vite build + server --check pass)
 - **Bug fix — Admin Google OAuth login failure (CreditTransaction index):**
   - **Root cause:** `reference_1` index on `credittransactions` collection was `unique: true, sparse: true`, but MongoDB's `sparse` flag only excludes documents where the field is entirely absent (undefined) — `null` IS a value, IS indexed, and `unique` then rejects multiple nulls. When an admin user was deleted and re-created via Google OAuth, `CreditService.awardSignupBonus` tried to create a second CreditTransaction with `reference: null`, triggering `E11000 duplicate key error`.
   - **Fix:** Replaced `sparse: true` on `reference` field with a partial unique index: `{ reference: 1 }` with `partialFilterExpression: { reference: { $type: "string" } }`. This enforces uniqueness only on actual string references, allowing unlimited null/undefined values.

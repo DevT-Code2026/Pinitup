@@ -1,5 +1,35 @@
 import mongoose from "mongoose";
 import WorkflowService from "../services/workflowService.js";
+import WorkflowExecutionService from "../services/workflowExecutionService.js";
+import { uploadBufferToCloudinary } from "../config/cloudinary.js";
+
+/**
+ * POST /api/workflows/upload
+ * Protected — upload an image for use in workflow execution.
+ * Multer (memoryStorage) places the file buffer on req.file.
+ * The buffer is streamed to Cloudinary; no temp files touch disk.
+ * Returns the public HTTPS URL the frontend will pass as input.coupleImage.
+ */
+export const uploadWorkflowImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
+      resourceType: "image",
+      folder: "pinitup/workflows",
+    });
+
+    res.status(200).json({
+      url: result.secure_url,
+      publicId: result.public_id,
+    });
+  } catch (error) {
+    console.error("[WorkflowController] Upload error:", error.message);
+    res.status(500).json({ message: "Image upload failed", error: error.message });
+  }
+};
 
 /**
  * GET /api/workflows
@@ -125,5 +155,84 @@ export const getAllWorkflowsAdmin = async (req, res) => {
     res.json({ workflows });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch workflows", error: error.message });
+  }
+};
+
+/**
+ * POST /api/workflows/:slug/execute
+ * Protected — execute a workflow with full lifecycle management.
+ */
+export const executeWorkflow = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { input } = req.body || {};
+    const userId = req.user.id;
+
+    const result = await WorkflowExecutionService.execute(userId, slug, input);
+
+    const responseBody = {
+      success: true,
+      execution: result.execution,
+      refunded: result.refunded,
+      wallet: result.wallet,
+    };
+
+    if (result.refunded) {
+      responseBody.refundCredits = result.refundCredits;
+    }
+
+    res.status(200).json(responseBody);
+  } catch (error) {
+    const status = error.statusCode || 500;
+
+    if (error.meta) {
+      return res.status(status).json({
+        message: error.message,
+        ...error.meta,
+      });
+    }
+
+    res.status(status).json({ message: error.message });
+  }
+};
+
+/**
+ * GET /api/executions
+ * Protected — paginated execution history for the authenticated user.
+ */
+export const getExecutionHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+
+    const result = await WorkflowExecutionService.getHistory(userId, { page, limit });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch execution history", error: error.message });
+  }
+};
+
+/**
+ * GET /api/executions/:id
+ * Protected — single execution detail (owner or admin only).
+ */
+export const getExecutionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid execution id" });
+    }
+
+    const execution = await WorkflowExecutionService.getById(id, req.user.id, req.user.role);
+
+    if (!execution) {
+      return res.status(404).json({ message: "Execution not found" });
+    }
+
+    res.json({ execution });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch execution", error: error.message });
   }
 };

@@ -20,7 +20,7 @@ const TYPE_LABELS = {
   signup_bonus: "Signup Bonus",
   purchase: "Purchase",
   promotion: "Promotion",
-  workflow_generation: "Workflow Generation",
+  workflow_generation: "Execution",
   refund: "Refund",
   admin_adjustment: "Admin Adjustment",
 };
@@ -30,7 +30,8 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 

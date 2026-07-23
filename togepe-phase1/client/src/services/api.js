@@ -54,6 +54,15 @@ api.interceptors.response.use(
 
 export const getWorkflows = () => api.get("/workflows");
 export const getWorkflow = (slug) => api.get(`/workflows/${slug}`);
+export const uploadWorkflowImage = (file) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  return api.post("/workflows/upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+export const executeWorkflow = (slug, input = {}) =>
+  api.post(`/workflows/${slug}/execute`, { input });
 
 /* ── Admin Workflow API ── */
 
@@ -68,5 +77,11 @@ export const getWallet = () => api.get("/wallet");
 
 export const getWalletTransactions = (page = 1, limit = 20) =>
   api.get("/wallet/transactions", { params: { page, limit } });
+
+/* ── Execution History API ── */
+
+export const getExecutions = (page = 1, limit = 20) =>
+  api.get("/executions", { params: { page, limit } });
+export const getExecutionById = (id) => api.get(`/executions/${id}`);
 
 export default api;

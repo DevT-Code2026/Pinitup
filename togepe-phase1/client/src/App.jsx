@@ -16,6 +16,7 @@ import AdminPage from "./pages/AdminPage.jsx";
 import Wallet from "./pages/Wallet.jsx";
 import Workflows from "./pages/Workflows.jsx";
 import AdminWorkflows from "./pages/AdminWorkflows.jsx";
+import ExecutionHistory from "./pages/ExecutionHistory.jsx";
 
 function App() {
   return (
@@ -67,6 +68,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Wallet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/executions"
+            element={
+              <ProtectedRoute>
+                <ExecutionHistory />
               </ProtectedRoute>
             }
           />

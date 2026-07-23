@@ -13,6 +13,8 @@ import {
   Shield,
   LayoutDashboard,
   Gem,
+  Zap,
+  History,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import "./Navbar.css";
@@ -135,13 +137,24 @@ export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }
               <Link to="/add-prompt" className="navbar__link">
                 Create
               </Link>
+              <Link to="/workflows" className="navbar__link">
+                Workflows
+              </Link>
+              <Link to="/executions" className="navbar__link">
+                History
+              </Link>
             </>
           )}
 
           {isAdmin && (
-            <Link to="/admin" className="navbar__link">
-              Admin
-            </Link>
+            <>
+              <Link to="/admin" className="navbar__link">
+                Admin
+              </Link>
+              <Link to="/admin/workflows" className="navbar__link">
+                Manage
+              </Link>
+            </>
           )}
 
           {isAuthenticated && (
@@ -359,20 +372,52 @@ export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }
                   <span className="navbar__drawer-credits">{credits}</span>
                 )}
               </NavLink>
+              <NavLink
+                to="/workflows"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <Zap size={18} />
+                Workflows
+              </NavLink>
+              <NavLink
+                to="/executions"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <History size={18} />
+                Execution History
+              </NavLink>
             </>
           )}
 
           {isAdmin && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
-              }
-              onClick={closeDrawer}
-            >
-              <Shield size={18} />
-              Admin
-            </NavLink>
+            <>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <Shield size={18} />
+                Admin
+              </NavLink>
+              <NavLink
+                to="/admin/workflows"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <Zap size={18} />
+                Manage Workflows
+              </NavLink>
+            </>
           )}
 
           {isAuthenticated && (
