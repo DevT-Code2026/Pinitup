@@ -1,0 +1,200 @@
+/* ==========================
+   Workflows Page
+   ========================== */
+
+.wf-page {
+  min-height: 100vh;
+  background: #f6f8fc;
+}
+
+.wf-main {
+  padding-top: 78px;
+  min-height: 100vh;
+}
+
+.wf-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ==========================
+   Header
+   ========================== */
+
+.wf-header {
+  text-align: center;
+  padding: 0 0 8px;
+}
+
+.wf-header__title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.wf-header__subtitle {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* ==========================
+   Workflow Grid
+   ========================== */
+
+.wf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ==========================
+   Workflow Card
+   ========================== */
+
+.wf-card {
+  background: #ffffff;
+  border: 1px solid #e7ebf3;
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.wf-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.wf-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wf-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wf-card__cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #eef2ff;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.wf-card__name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.wf-card__description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.wf-card__footer {
+  display: flex;
+  align-items: center;
+  padding-top: 6px;
+}
+
+.wf-card__provider {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* ==========================
+   Empty State
+   ========================== */
+
+.wf-empty {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 64px 32px;
+  text-align: center;
+  border: 1px solid #e7ebf3;
+}
+
+.wf-empty__icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.wf-empty__title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.wf-empty__description {
+  max-width: 480px;
+  margin: 14px auto 0;
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+/* ==========================
+   Responsive
+   ========================== */
+
+@media (max-width: 992px) {
+  .wf-container {
+    padding: 24px 18px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .wf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wf-header__title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .wf-container {
+    padding: 18px 14px 32px;
+    gap: 22px;
+  }
+
+  .wf-card {
+    padding: 20px;
+  }
+}

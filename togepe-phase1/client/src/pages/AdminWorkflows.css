@@ -1,0 +1,299 @@
+/* ==========================
+   Admin Workflows
+   ========================== */
+
+.aw-page {
+  min-height: 100vh;
+  background: #f6f8fc;
+}
+
+.aw-main {
+  padding-top: 78px;
+  min-height: 100vh;
+}
+
+.aw-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ==========================
+   Header
+   ========================== */
+
+.aw-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.aw-header__left h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.aw-header__left p {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.aw-header__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.aw-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: #4f46e5;
+  color: #fff;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.aw-create-btn:hover { background: #4338ca; }
+.aw-create-btn:active { transform: scale(0.97); }
+
+.aw-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.aw-refresh-btn:hover { color: #4f46e5; border-color: #4f46e5; }
+.aw-refresh-btn--loading { opacity: 0.6; pointer-events: none; }
+
+/* ==========================
+   Table
+   ========================== */
+
+.aw-table-wrap {
+  background: #fff;
+  border: 1px solid #e7ebf3;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.aw-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aw-table th,
+.aw-table td {
+  padding: 14px 20px;
+  text-align: left;
+}
+
+.aw-table th {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-bottom: 1px solid #e7ebf3;
+}
+
+.aw-table td {
+  font-size: 0.92rem;
+  color: #374151;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.aw-table tr:last-child td {
+  border-bottom: none;
+}
+
+.aw-table tr:hover td {
+  background: #fafbfd;
+}
+
+/* ==========================
+   Table Cell Content
+   ========================== */
+
+.aw-cell__name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.aw-cell__slug {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.aw-cell__provider {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.aw-cell__provider--gemini { background: #eef2ff; color: #4f46e5; }
+.aw-cell__provider--openai { background: #ecfdf5; color: #16a34a; }
+.aw-cell__provider--claude { background: #fef3c7; color: #d97706; }
+
+.aw-cell__cost {
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.aw-cell__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.aw-cell__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.aw-cell__status-dot--active { background: #16a34a; }
+.aw-cell__status-dot--inactive { background: #9ca3af; }
+
+/* ==========================
+   Actions
+   ========================== */
+
+.aw-cell-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.aw-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e7ebf3;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aw-action-btn:hover { border-color: #c7d2de; color: #374151; }
+.aw-action-btn--deactivate:hover { border-color: #f59e0b; color: #d97706; background: #fffbeb; }
+.aw-action-btn--activate:hover { border-color: #16a34a; color: #16a34a; background: #ecfdf5; }
+.aw-action-btn--delete:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+
+/* ==========================
+   Empty State
+   ========================== */
+
+.aw-empty {
+  background: #ffffff;
+  border: 1px solid #e7ebf3;
+  border-radius: 22px;
+  padding: 64px 32px;
+  text-align: center;
+}
+
+.aw-empty__icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.aw-empty h3 { margin: 0; font-size: 1.4rem; color: #111827; }
+.aw-empty p { max-width: 480px; margin: 10px auto 0; color: #6b7280; line-height: 1.6; }
+
+/* ==========================
+   Modals
+   ========================== */
+
+.aw-field { display: flex; flex-direction: column; gap: 6px; }
+.aw-field__label { font-size: 0.85rem; font-weight: 600; color: #374151; }
+
+.aw-field__input,
+.aw-field__select {
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.2s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.aw-field__input:focus,
+.aw-field__select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.aw-field__select { cursor: pointer; appearance: none; }
+
+.aw-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ==========================
+   Responsive
+   ========================== */
+
+@media (max-width: 992px) {
+  .aw-container { padding: 24px 18px 40px; }
+}
+
+@media (max-width: 768px) {
+  .aw-header { flex-direction: column; }
+  .aw-table th:nth-child(1),
+  .aw-table td:nth-child(1) { display: none; }
+  .aw-table th,
+  .aw-table td { padding: 12px 14px; }
+  .aw-form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px) {
+  .aw-container { padding: 18px 14px 32px; }
+  .aw-header__left h1 { font-size: 1.5rem; }
+  .aw-table th:nth-child(2),
+  .aw-table td:nth-child(2) { display: none; }
+}

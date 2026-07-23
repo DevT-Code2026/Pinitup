@@ -9,9 +9,6 @@ const ADMIN_EMAILS = new Set([
   "dev@npl.live",
 ]);
 
-// Stateless — no serializeUser/deserializeUser or session store needed
-// since every route using this runs with { session: false } and the app
-// issues its own JWT afterwards (see authController.googleAuthCallback).
 passport.use(
   new GoogleStrategy(
     {
@@ -25,10 +22,9 @@ passport.use(
         const avatar = profile.photos?.[0]?.value;
         const isAdminEmail = email && ADMIN_EMAILS.has(email);
 
-        // 1. Existing Google user — log them in.
+        // 1. Existing Google user
         let user = await User.findOne({ googleId: profile.id });
         if (user) {
-          // Promote if email was recently added to admin list
           if (isAdminEmail && user.role !== "admin") {
             user.role = "admin";
             await user.save();
@@ -36,9 +32,7 @@ passport.use(
           return done(null, user);
         }
 
-        // 2. No Google-linked account yet, but the email already exists as
-        // a local account — link Google to it instead of creating a
-        // duplicate user. Existing local login keeps working unchanged.
+        // 2. Link Google to existing local account
         if (email) {
           user = await User.findOne({ email });
           if (user) {
@@ -52,7 +46,7 @@ passport.use(
           }
         }
 
-        // 3. Brand-new user — create with provider "google", no password.
+        // 3. Brand-new user
         user = await User.create({
           name: profile.displayName || "Google User",
           email,
@@ -62,8 +56,6 @@ passport.use(
           role: isAdminEmail ? "admin" : "user",
         });
 
-        // Award signup bonus for new Google users.
-        // If this fails, delete the user and propagate the error.
         try {
           await CreditService.awardSignupBonus(user._id);
         } catch (bonusError) {
@@ -79,8 +71,9 @@ passport.use(
   )
 );
 
-// Serialize only the user ID into the session (required when using
-// passport.session() for Google OAuth state parameter support).
+// Stateless — no serializeUser/deserializeUser or session store needed
+// since every route using this runs with { session: false } and the app
+// issues its own JWT afterwards (see authController.googleAuthCallback).
 passport.serializeUser((user, done) => {
   done(null, user._id);
 });

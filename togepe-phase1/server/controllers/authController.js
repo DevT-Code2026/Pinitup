@@ -27,8 +27,6 @@ export const registerUser = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // role always defaults to "user" here — admin accounts are created
-    // separately via a seed script, never through public signup
     const user = await User.create({
       name,
       email: email.toLowerCase(),
@@ -36,7 +34,6 @@ export const registerUser = async (req, res) => {
       role: "user",
     });
 
-    // Award signup bonus — if this fails, clean up the user and abort.
     try {
       await CreditService.awardSignupBonus(user._id);
     } catch (bonusError) {
@@ -56,16 +53,18 @@ export const registerUser = async (req, res) => {
 };
 
 // GET /api/auth/google/callback
-// Runs after Passport's GoogleStrategy has already verified the user and
-// attached it to req.user (see config/passport.js). Reuses the exact same
-// generateToken() as register/login, so downstream JWT verification in
-// authMiddleware.js needs no changes at all.
 export const googleAuthCallback = (req, res) => {
   const user = req.user;
-  const token = generateToken(user);
-
-  const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success?token=${token}`;
-  res.redirect(redirectUrl);
+  if (!user) {
+    return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
+  }
+  try {
+    const token = generateToken(user);
+    const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success?token=${token}`;
+    res.redirect(redirectUrl);
+  } catch (tokenErr) {
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
+  }
 };
 
 // POST /api/auth/login

@@ -16,6 +16,8 @@ import boardRoutes from "./routes/boardRoutes.js";
 import likeRoutes from "./routes/likeRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
+import workflowRoutes from "./routes/workflowRoutes.js";
+import adminWorkflowRoutes from "./routes/adminWorkflowRoutes.js";
 
 connectDB();
 
@@ -61,6 +63,8 @@ app.use("/api/boards", boardRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use("/api/workflows", workflowRoutes);
+app.use("/api/admin/workflows", adminWorkflowRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

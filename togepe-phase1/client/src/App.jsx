@@ -14,6 +14,8 @@ import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
 import AdminPage from "./pages/AdminPage.jsx";
 import Wallet from "./pages/Wallet.jsx";
+import Workflows from "./pages/Workflows.jsx";
+import AdminWorkflows from "./pages/AdminWorkflows.jsx";
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth-success" element={<OAuthSuccess />} />
           <Route path="/prompt/:id" element={<PromptDetail />} />
+          <Route path="/workflows" element={<Workflows />} />
 
           {/* Auth required */}
           <Route
@@ -82,6 +85,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/workflows"
+            element={
+              <AdminRoute>
+                <AdminWorkflows />
               </AdminRoute>
             }
           />

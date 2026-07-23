@@ -16,12 +16,17 @@ const creditTransactionSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     balanceBefore: { type: Number, required: true },
     balanceAfter: { type: Number, required: true },
-    reference: { type: String, unique: true, sparse: true },
+    reference: { type: String },
     description: { type: String },
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
+
+creditTransactionSchema.index({ reference: 1 }, {
+  unique: true,
+  partialFilterExpression: { reference: { $type: "string" } },
+});
 
 creditTransactionSchema.index({ user: 1, createdAt: -1 });
 

@@ -235,7 +235,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - **Backend — User model extended:**
   - `User.credits` field added — `{ type: Number, default: 0, min: 0 }` at `server/models/User.js:16`
 - **Backend — CreditTransaction model:**
-  - Created `server/models/CreditTransaction.js` — user (ref User), type (enum), amount, balanceBefore, balanceAfter, reference (unique sparse), description, metadata
+  - Created `server/models/CreditTransaction.js` — user (ref User), type (enum), amount, balanceBefore, balanceAfter, reference (unique + partial index on string type), description, metadata
   - Indexed on `{ user: 1, createdAt: -1 }` for fast history queries
 - **Backend — CreditService:**
   - Created `server/services/creditService.js` — single authority for all credit mutations
@@ -262,7 +262,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
   - Transaction history is paginated (20 per page default)
   - Balance cannot become negative (min: 0 on model + runtime check in deductCredits)
   - Bonus failure rolls back: newly created User is deleted to prevent orphaned accounts
-  - Transaction reference is optional but unique when present (sparse index prevents duplicate transactions)
+  - Transaction reference is optional but unique when present (partial index on string type prevents duplicate transactions while allowing multiple nulls)
 - Verified clean production build (vite build passes)
 
 ### Phase 2 — Credit System (Frontend Integration)
@@ -272,6 +272,20 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - **Wallet page created:** `/wallet` (protected) — balance card (gradient hero), transaction history list with type icons/labels/amounts/dates, Previous/Next pagination (10 per page), loading/error/empty states reusing dashboard components
 - **Responsive:** 3 breakpoints (992/768/576) matching Dashboard patterns; balance card stacks vertically on mobile; transaction list adapts
 - **Error handling:** wallet failures never log out or break navigation; graceful silent failure in AuthContext
+- Verified clean production build (vite build passes)
+
+### Phase 3 — Workflow Management
+- **Workflow model created:** `server/models/Workflow.js` — name, slug (unique), description, provider (gemini/openai/claude), creditCost (int, min 0), status (active/inactive), timestamps
+- **WorkflowService created:** `server/services/workflowService.js` — createWorkflow, updateWorkflow, getWorkflowBySlug, getWorkflowById, getAllActiveWorkflows, getAllWorkflows, deactivateWorkflow (soft delete), validateSlug
+- **WorkflowController created:** `server/controllers/workflowController.js` — public: getAllWorkflows, getWorkflowBySlug; admin: getAllWorkflowsAdmin, createWorkflow, updateWorkflow, deactivateWorkflow
+- **Workflow routes created:** `server/routes/workflowRoutes.js` (public: GET /, GET /:slug) + `server/routes/adminWorkflowRoutes.js` (admin-only: GET /, POST /, PUT /:id, DELETE /:id)
+- **Routes registered** in server.js — workflowRoutes at `/api/workflows`, adminWorkflowRoutes at `/api/admin/workflows`
+- **Seed script created:** `server/seedWorkflows.js` — idempotent, skips by slug, 5 example workflows (Image Generation, Prompt Enhancement, Caption Generator, SEO Generator, Blog Writer)
+- **Frontend API extended:** `getWorkflows`, `getWorkflow`, `getAdminWorkflows`, `createWorkflow`, `updateWorkflow`, `deactivateWorkflow` added to `services/api.js`
+- **Public Workflows page created:** `/workflows` — card grid of active workflows showing name, description, provider badge, credit cost, responsive 3-column layout
+- **Admin Workflows page created:** `/admin/workflows` — table view with create/edit modals, soft-delete + activate/deactivate toggle, provider badge, cost, status dot
+- **App.jsx routes updated:** `/workflows` (public), `/admin/workflows` (AdminRoute)
+- **Sidebar updated:** "Workflows" nav item (Zap icon, public), "Admin Workflows" nav item (admin-only, inserted in admin section)
 - Verified clean production build (vite build passes)
 
 ### Auth Architecture (as of latest commit)
@@ -286,7 +300,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Pending Features
 
-- Workflow pricing and deduction (Phase 3)
+- Credit deduction on workflow execution (Phase 4)
 - Premium feature spending (Phase 4)
 - Refund system (Phase 5)
 - Payment gateway integration (Phase 6)
@@ -327,7 +341,7 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - **Content:** type, mediaUrl, mediaPublicId, title, description, category, prompt, tags[], uploadedBy (ref User), likesCount, sharesCount — indexes: `category`, `createdAt` desc, `likesCount` desc
 - **Board:** owner (ref User), name, description, savedContent[] (ref Content), timestamps, unique(owner, name) index — fully implemented
 - **Like:** user (ref User), content (ref Content), unique compound index — fully implemented
-- **CreditTransaction:** user (ref User), type (enum: signup_bonus, purchase, promotion, workflow_generation, refund, admin_adjustment), amount, balanceBefore, balanceAfter, reference (unique sparse), description, metadata (Mixed), timestamps — index: `{ user: 1, createdAt: -1 }`
+- **CreditTransaction:** user (ref User), type (enum: signup_bonus, purchase, promotion, workflow_generation, refund, admin_adjustment), amount, balanceBefore, balanceAfter, reference (unique + partial index on string type), description, metadata (Mixed), timestamps — indexes: `{ user: 1, createdAt: -1 }`, `{ reference: 1 }` (unique, partialFilterExpression: `{ reference: { $type: "string" } }`)
 
 ## API Summary
 
@@ -353,25 +367,37 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `GET /api/admin/stats` — admin-only: returns totalUsers, totalPrompts, totalBoards, recentActivity
 - `GET /api/wallet` — protected: returns current credit balance `{ credits }`
 - `GET /api/wallet/transactions?page=1&limit=20` — protected: paginated transaction history with `transactions[]` and `pagination` object
+- `GET /api/workflows` — public: list all active workflows
+- `GET /api/workflows/:slug` — public: get single active workflow by slug
+- `GET /api/admin/workflows` — admin-only: list all workflows (active + inactive)
+- `POST /api/admin/workflows` — admin-only: create new workflow (name, description, provider, creditCost)
+- `PUT /api/admin/workflows/:id` — admin-only: update workflow
+- `DELETE /api/admin/workflows/:id` — admin-only: soft-delete workflow (sets status to inactive)
 
 ## Current Phase
 
-Phase 2 — Credit System Complete (Wallet Foundation + Auth Integration + Frontend Integration)
+Phase 3 — Workflow Management Complete (Model + Service + Controller + Routes + Seed Script + Public + Admin UI)
 
 ## Next Tasks
 
-1. Phase 3 — Workflow Pricing (integrate `deductCredits` into workflow generation)
-2. Phase 4 — Credit Spending (premium features, admin adjustments)
-3. Phase 5 — Refund System (refund eligibility, balance restoration)
-4. Phase 6 — Payment Integration (Stripe, credit packs, promo codes)
-5. User profile page (proper implementation, not Dashboard reuse)
-6. Settings page
-7. 404 page (catch-all now redirects to `/`)
-8. Production-quality category thumbnail images (replace picsum.photos placeholders)
+1. Phase 4 — Credit Spending (integrate `deductCredits` into workflow generation, premium features, admin adjustments)
+2. Phase 5 — Refund System (refund eligibility, balance restoration)
+3. Phase 6 — Payment Integration (Stripe, credit packs, promo codes)
+4. User profile page (proper implementation, not Dashboard reuse)
+5. Settings page
+6. 404 page (catch-all now redirects to `/`)
+7. Production-quality category thumbnail images (replace picsum.photos placeholders)
 
 ## Daily Progress Log
 
 ### 2026-07-23
+- **Bug fix — Admin Google OAuth login failure (CreditTransaction index):**
+  - **Root cause:** `reference_1` index on `credittransactions` collection was `unique: true, sparse: true`, but MongoDB's `sparse` flag only excludes documents where the field is entirely absent (undefined) — `null` IS a value, IS indexed, and `unique` then rejects multiple nulls. When an admin user was deleted and re-created via Google OAuth, `CreditService.awardSignupBonus` tried to create a second CreditTransaction with `reference: null`, triggering `E11000 duplicate key error`.
+  - **Fix:** Replaced `sparse: true` on `reference` field with a partial unique index: `{ reference: 1 }` with `partialFilterExpression: { reference: { $type: "string" } }`. This enforces uniqueness only on actual string references, allowing unlimited null/undefined values.
+  - **MongoDB commands executed:** `db.credittransactions.dropIndex("reference_1")` → `db.credittransactions.createIndex({ reference: 1 }, { unique: true, partialFilterExpression: { reference: { $type: "string" } } })`
+  - **Schema change:** `CreditTransaction.js` line 19 — removed `unique: true, sparse: true` from field definition, added explicit index definition with `partialFilterExpression`
+  - **Verified:** Multiple documents with `reference: null` insert successfully; duplicate string references still rejected
+  - **Files changed:** `server/models/CreditTransaction.js`
 - Created `docs/CREDIT_SYSTEM_PROGRESS.md` — full documentation of credit system phases 1-6
 - Documented architecture, models, services, APIs, auth flow, implementation notes, and roadmap
 - Updated Memory.md with credit system details across all sections
@@ -384,6 +410,20 @@ Phase 2 — Credit System Complete (Wallet Foundation + Auth Integration + Front
   - Created `pages/Wallet.css` — page layout matching Dashboard, balance card, transaction list, pagination, responsive (992/768/576 breakpoints)
   - Updated `App.jsx` — `/wallet` route wrapped in `ProtectedRoute`
   - Verified clean production build
+- **Phase 3 — Workflow Management implemented:**
+  - Created `server/models/Workflow.js` — Mongoose schema: name, slug (unique), description, provider (gemini/openai/claude), creditCost (int, min 0), status (active/inactive), timestamps
+  - Created `server/services/workflowService.js` — CRUD: createWorkflow, updateWorkflow, getWorkflowBySlug, getWorkflowById, getAllActiveWorkflows, getAllWorkflows, deactivateWorkflow (soft), validateSlug
+  - Created `server/controllers/workflowController.js` — public: getAllWorkflows, getWorkflowBySlug; admin: getAllWorkflowsAdmin, createWorkflow, updateWorkflow, deactivateWorkflow
+  - Created `server/routes/workflowRoutes.js` — GET /, GET /:slug (public)
+  - Created `server/routes/adminWorkflowRoutes.js` — GET /, POST /, PUT /:id, DELETE /:id (all protected + requireAdmin)
+  - Registered both route sets in `server/server.js`
+  - Created `server/seedWorkflows.js` — idempotent seed script, 5 example workflows (Image Generation/75, Prompt Enhancement/10, Caption Generator/15, SEO Generator/20, Blog Writer/40)
+  - Extended `client/src/services/api.js` — added getWorkflows, getWorkflow, getAdminWorkflows, createWorkflow, updateWorkflow, deactivateWorkflow
+  - Created `pages/Workflows.jsx` + `Workflows.css` — public workflows page, card grid layout, provider badges, credit cost display, responsive
+  - Created `pages/AdminWorkflows.jsx` + `AdminWorkflows.css` — admin CRUD table, create/edit modals, soft-delete, activate/deactivate toggle, responsive (992/768/576)
+  - Updated `App.jsx` — `/workflows` (public), `/admin/workflows` (AdminRoute) routes
+  - Updated `Sidebar.jsx` — "Workflows" nav item (public), "Admin Workflows" nav item (admin-only)
+  - Verified clean production build (vite build passes)
 
 ### 2026-07-22
 - Wired AuthProvider into main.jsx (was orphaned)

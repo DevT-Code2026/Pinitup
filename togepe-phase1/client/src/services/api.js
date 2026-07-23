@@ -50,6 +50,18 @@ api.interceptors.response.use(
   }
 );
 
+/* ── Workflow API ── */
+
+export const getWorkflows = () => api.get("/workflows");
+export const getWorkflow = (slug) => api.get(`/workflows/${slug}`);
+
+/* ── Admin Workflow API ── */
+
+export const getAdminWorkflows = () => api.get("/admin/workflows");
+export const createWorkflow = (data) => api.post("/admin/workflows", data);
+export const updateWorkflow = (id, data) => api.put(`/admin/workflows/${id}`, data);
+export const deactivateWorkflow = (id) => api.delete(`/admin/workflows/${id}`);
+
 /* ── Wallet API ── */
 
 export const getWallet = () => api.get("/wallet");

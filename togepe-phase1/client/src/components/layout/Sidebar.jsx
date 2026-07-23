@@ -8,6 +8,7 @@ import {
   ChevronRight,
   X,
   Shield,
+  Zap,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -17,17 +18,21 @@ const baseMenuItems = [
   { title: "Explore", icon: Compass, path: "/" },
   { title: "Add Prompt", icon: PlusSquare, path: "/add-prompt" },
   { title: "Boards", icon: FolderKanban, path: "/boards" },
+  { title: "Workflows", icon: Zap, path: "/workflows" },
   { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
-const adminItem = { title: "Admin", icon: Shield, path: "/admin" };
+const adminItems = [
+  { title: "Admin", icon: Shield, path: "/admin" },
+  { title: "Admin Workflows", icon: Zap, path: "/admin/workflows" },
+];
 
 export default function Sidebar({ isOpen = true, onClose }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
   const menuItems = isAdmin
-    ? [...baseMenuItems.slice(0, 4), adminItem, ...baseMenuItems.slice(4)]
+    ? [...baseMenuItems.slice(0, 4), ...adminItems, ...baseMenuItems.slice(4)]
     : baseMenuItems;
 
   return (
