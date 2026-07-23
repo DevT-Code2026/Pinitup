@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
       },
     },
     role: { type: String, enum: ["user", "admin"], default: "user" },
+    credits: { type: Number, default: 0, min: 0 },
     provider: { type: String, enum: ["local", "google"], default: "local" },
     googleId: { type: String, unique: true, sparse: true }, // sparse: many users won't have one
     avatar: { type: String },

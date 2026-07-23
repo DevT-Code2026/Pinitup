@@ -13,6 +13,7 @@ import PromptDetail from "./pages/PromptDetail";
 import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
 import AdminPage from "./pages/AdminPage.jsx";
+import Wallet from "./pages/Wallet.jsx";
 
 function App() {
   return (
@@ -55,6 +56,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <BoardDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute>
+                <Wallet />
               </ProtectedRoute>
             }
           />

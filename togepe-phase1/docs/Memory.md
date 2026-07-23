@@ -231,6 +231,49 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - All existing features preserved: auth, likes, boards, sharing, search, RBAC, guest browsing
 - Verified clean production build (vite build passes)
 
+### Phase 2 — Credit System (Wallet Foundation + Auth Integration)
+- **Backend — User model extended:**
+  - `User.credits` field added — `{ type: Number, default: 0, min: 0 }` at `server/models/User.js:16`
+- **Backend — CreditTransaction model:**
+  - Created `server/models/CreditTransaction.js` — user (ref User), type (enum), amount, balanceBefore, balanceAfter, reference (unique sparse), description, metadata
+  - Indexed on `{ user: 1, createdAt: -1 }` for fast history queries
+- **Backend — CreditService:**
+  - Created `server/services/creditService.js` — single authority for all credit mutations
+  - Methods: `addCredits`, `deductCredits`, `getWallet`, `getTransactions`, `awardSignupBonus`
+  - `awardSignupBonus` awards 20 credits via `addCredits` (no duplicate logic)
+  - `toWalletDTO` returns plain object `{ credits }` (no raw Mongoose docs)
+  - `deductCredits` rejects if `user.credits < amount` — balance never goes negative
+- **Backend — Transaction Types:**
+  - Created `server/utils/transactionTypes.js` — exports `SIGNUP_BONUS`, `PURCHASE`, `PROMOTION`, `WORKFLOW_GENERATION`, `REFUND`, `ADMIN_ADJUSTMENT` + `TransactionTypes` object
+  - `CreditTransaction.type` enum validated against `Object.values(TransactionTypes)`
+- **Backend — Wallet API:**
+  - Created `server/controllers/walletController.js` — `getWallet`, `getTransactionHistory` (paginated, defaults page=1, limit=20)
+  - Created `server/routes/walletRoutes.js` — `GET /api/wallet`, `GET /api/wallet/transactions` (both protected)
+  - Registered in `server.js` as `/api/wallet`
+- **Backend — Auth integration:**
+  - `authController.js` — imports `CreditService`, calls `awardSignupBonus(user._id)` after `User.create()`; on failure, deletes user and returns 500
+  - `passport.js` — imports `CreditService`, calls `awardSignupBonus(user._id)` after Google OAuth `User.create()` (case 3: brand-new user only); on failure, deletes user and propagates error
+  - Three auth paths are mutually exclusive: existing Google user (no bonus), link local account (no bonus), new user (bonus awarded)
+- **Architectural rules:**
+  - Only CreditService may modify `user.credits`
+  - Every balance change creates a CreditTransaction with balanceBefore/balanceAfter
+  - Signup bonus is awarded exactly once per account
+  - Wallet APIs require JWT (protected middleware)
+  - Transaction history is paginated (20 per page default)
+  - Balance cannot become negative (min: 0 on model + runtime check in deductCredits)
+  - Bonus failure rolls back: newly created User is deleted to prevent orphaned accounts
+  - Transaction reference is optional but unique when present (sparse index prevents duplicate transactions)
+- Verified clean production build (vite build passes)
+
+### Phase 2 — Credit System (Frontend Integration)
+- **API layer extended:** `getWallet()` and `getWalletTransactions(page, limit)` added to `services/api.js`, reusing existing axios instance and interceptors
+- **AuthContext extended:** `credits`, `loadingWallet`, `refreshWallet()` added; wallet auto-fetches on mount after login, resets on logout; `walletFetchedRef` prevents duplicate requests; no WalletContext created
+- **Navbar updated:** Gem icon credit pill (desktop, indigo bg) + wallet link in mobile drawer; loading skeleton during fetch; hidden for unauthenticated users
+- **Wallet page created:** `/wallet` (protected) — balance card (gradient hero), transaction history list with type icons/labels/amounts/dates, Previous/Next pagination (10 per page), loading/error/empty states reusing dashboard components
+- **Responsive:** 3 breakpoints (992/768/576) matching Dashboard patterns; balance card stacks vertically on mobile; transaction list adapts
+- **Error handling:** wallet failures never log out or break navigation; graceful silent failure in AuthContext
+- Verified clean production build (vite build passes)
+
 ### Auth Architecture (as of latest commit)
 - `AuthProvider` wraps `<App />` in `main.jsx` — single source of truth
 - `LoginPage` and `OAuthSuccess` call `AuthContext.login()` (no direct localStorage writes)
@@ -243,8 +286,12 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Pending Features
 
-- Registration / signup UI (landing page "Get Started" button already links to `/signup`)
-- User profile page (`/profile` route exists but reuses Dashboard)
+- Workflow pricing and deduction (Phase 3)
+- Premium feature spending (Phase 4)
+- Refund system (Phase 5)
+- Payment gateway integration (Phase 6)
+- Admin credit management UI
+- User profile page (proper implementation, not Dashboard reuse)
 - Settings page
 - 404 page (catch-all now redirects to `/`)
 - TailwindCSS integration (currently inline styles + CSS)
@@ -276,10 +323,11 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Database Schema Summary
 
-- **User:** name, email, passwordHash, role (user/admin), provider (local/google), googleId, avatar
+- **User:** name, email, passwordHash, role (user/admin), credits (Number, default 0, min 0), provider (local/google), googleId, avatar
 - **Content:** type, mediaUrl, mediaPublicId, title, description, category, prompt, tags[], uploadedBy (ref User), likesCount, sharesCount — indexes: `category`, `createdAt` desc, `likesCount` desc
 - **Board:** owner (ref User), name, description, savedContent[] (ref Content), timestamps, unique(owner, name) index — fully implemented
 - **Like:** user (ref User), content (ref Content), unique compound index — fully implemented
+- **CreditTransaction:** user (ref User), type (enum: signup_bonus, purchase, promotion, workflow_generation, refund, admin_adjustment), amount, balanceBefore, balanceAfter, reference (unique sparse), description, metadata (Mixed), timestamps — index: `{ user: 1, createdAt: -1 }`
 
 ## API Summary
 
@@ -303,23 +351,39 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 - `DELETE /api/boards/:id/save/:contentId` — remove prompt from board (auth required)
 - `GET /api/likes/ping` — working
 - `GET /api/admin/stats` — admin-only: returns totalUsers, totalPrompts, totalBoards, recentActivity
+- `GET /api/wallet` — protected: returns current credit balance `{ credits }`
+- `GET /api/wallet/transactions?page=1&limit=20` — protected: paginated transaction history with `transactions[]` and `pagination` object
 
 ## Current Phase
 
-Phase 2 — Production Deployment Fix (CORS + env vars)
+Phase 2 — Credit System Complete (Wallet Foundation + Auth Integration + Frontend Integration)
 
 ## Next Tasks
 
-1. Set `VITE_API_URL` in Vercel env vars to Render backend URL
-2. Set `CLIENT_URL` (comma-separated) and `GOOGLE_CALLBACK_URL` on Render
-3. User profile page (proper implementation, not Dashboard reuse)
-4. Settings page
-5. 404 page (catch-all now redirects to `/`)
-6. Prompt detail page styling update to match PromptPin white theme
-7. Responsive navbar mobile hamburger menu
+1. Phase 3 — Workflow Pricing (integrate `deductCredits` into workflow generation)
+2. Phase 4 — Credit Spending (premium features, admin adjustments)
+3. Phase 5 — Refund System (refund eligibility, balance restoration)
+4. Phase 6 — Payment Integration (Stripe, credit packs, promo codes)
+5. User profile page (proper implementation, not Dashboard reuse)
+6. Settings page
+7. 404 page (catch-all now redirects to `/`)
 8. Production-quality category thumbnail images (replace picsum.photos placeholders)
 
 ## Daily Progress Log
+
+### 2026-07-23
+- Created `docs/CREDIT_SYSTEM_PROGRESS.md` — full documentation of credit system phases 1-6
+- Documented architecture, models, services, APIs, auth flow, implementation notes, and roadmap
+- Updated Memory.md with credit system details across all sections
+- **Frontend wallet integration implemented:**
+  - Extended `services/api.js` — added `getWallet()` and `getWalletTransactions(page, limit)` using existing axios instance
+  - Extended `context/AuthContext.jsx` — added `credits`, `loadingWallet`, `refreshWallet()`; wallet auto-fetches on mount after login, after login/signup/OAuth, resets on logout; `walletFetchedRef` prevents duplicate requests
+  - Updated `components/layout/Navbar.jsx` — Gem icon credit pill (desktop) + wallet link in drawer (mobile); loading skeleton during fetch
+  - Updated `components/layout/Navbar.css` — `.navbar__credits` pill styles (indigo bg, rounded, hover), `.navbar__credits-skeleton` shimmer, `.navbar__drawer-credits` badge
+  - Created `pages/Wallet.jsx` — balance card (gradient hero), transaction history list (type icon, label, description, amount, date), pagination (Previous/Next + page info), loading/error/empty states reusing dashboard components
+  - Created `pages/Wallet.css` — page layout matching Dashboard, balance card, transaction list, pagination, responsive (992/768/576 breakpoints)
+  - Updated `App.jsx` — `/wallet` route wrapped in `ProtectedRoute`
+  - Verified clean production build
 
 ### 2026-07-22
 - Wired AuthProvider into main.jsx (was orphaned)

@@ -50,4 +50,11 @@ api.interceptors.response.use(
   }
 );
 
+/* ── Wallet API ── */
+
+export const getWallet = () => api.get("/wallet");
+
+export const getWalletTransactions = (page = 1, limit = 20) =>
+  api.get("/wallet/transactions", { params: { page, limit } });
+
 export default api;

@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
+import CreditService from "../services/creditService.js";
 
 const ADMIN_EMAILS = new Set([
   "content@npl.live",
@@ -60,6 +61,15 @@ passport.use(
           avatar,
           role: isAdminEmail ? "admin" : "user",
         });
+
+        // Award signup bonus for new Google users.
+        // If this fails, delete the user and propagate the error.
+        try {
+          await CreditService.awardSignupBonus(user._id);
+        } catch (bonusError) {
+          await User.deleteOne({ _id: user._id });
+          return done(bonusError, null);
+        }
 
         return done(null, user);
       } catch (error) {

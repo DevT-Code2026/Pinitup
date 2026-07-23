@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { setAuthToken, setUnauthorizedHandler } from "../services/api.js";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { setAuthToken, setUnauthorizedHandler, getWallet } from "../services/api.js";
 
 const AuthContext = createContext(null);
 
@@ -10,6 +10,11 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState(null);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+
+  // Ref to avoid duplicate wallet fetches during mount
+  const walletFetchedRef = useRef(false);
 
   // Load whatever was persisted from a previous session on first mount.
   useEffect(() => {
@@ -34,6 +39,27 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  // Fetch wallet data when authenticated. Deduplicates concurrent calls.
+  const refreshWallet = useCallback(async () => {
+    try {
+      setLoadingWallet(true);
+      const res = await getWallet();
+      setCredits(res.data.credits);
+    } catch {
+      // Graceful — wallet failure must never log out or break navigation
+    } finally {
+      setLoadingWallet(false);
+    }
+  }, []);
+
+  // Fetch wallet after mount when token exists
+  useEffect(() => {
+    if (token && !walletFetchedRef.current) {
+      walletFetchedRef.current = true;
+      refreshWallet();
+    }
+  }, [token, refreshWallet]);
+
   const login = (newToken, newUser) => {
     localStorage.setItem("token", newToken);
     if (newUser) {
@@ -43,6 +69,9 @@ export function AuthProvider({ children }) {
     setAuthToken(newToken);
     setToken(newToken);
     setUser(newUser || null);
+
+    // Reset wallet fetch flag so the effect above re-runs for the new token
+    walletFetchedRef.current = false;
   };
 
   const logout = () => {
@@ -52,6 +81,8 @@ export function AuthProvider({ children }) {
     setAuthToken(null);
     setToken(null);
     setUser(null);
+    setCredits(null);
+    walletFetchedRef.current = false;
   };
 
   // Registered once so api.js's response interceptor can route a 401
@@ -71,8 +102,11 @@ export function AuthProvider({ children }) {
       loading,
       login,
       logout,
+      credits,
+      loadingWallet,
+      refreshWallet,
     }),
-    [user, token, loading]
+    [user, token, loading, credits, loadingWallet, refreshWallet]
   );
 
   return (

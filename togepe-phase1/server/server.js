@@ -15,6 +15,7 @@ import contentRoutes from "./routes/contentRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import likeRoutes from "./routes/likeRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 
 connectDB();
 
@@ -59,6 +60,7 @@ app.use("/api/content", contentRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/wallet", walletRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

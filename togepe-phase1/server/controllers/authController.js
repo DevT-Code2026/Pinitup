@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import CreditService from "../services/creditService.js";
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -34,6 +35,14 @@ export const registerUser = async (req, res) => {
       passwordHash,
       role: "user",
     });
+
+    // Award signup bonus — if this fails, clean up the user and abort.
+    try {
+      await CreditService.awardSignupBonus(user._id);
+    } catch (bonusError) {
+      await User.deleteOne({ _id: user._id });
+      return res.status(500).json({ message: "Registration failed", error: bonusError.message });
+    }
 
     const token = generateToken(user);
 

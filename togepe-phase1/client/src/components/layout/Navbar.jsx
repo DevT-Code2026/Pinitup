@@ -12,12 +12,13 @@ import {
   FolderKanban,
   Shield,
   LayoutDashboard,
+  Gem,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import "./Navbar.css";
 
 export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }) {
-  const { user, logout } = useAuth();
+  const { user, logout, credits, loadingWallet } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef(null);
   const mobileInputRef = useRef(null);
@@ -140,6 +141,17 @@ export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }
           {isAdmin && (
             <Link to="/admin" className="navbar__link">
               Admin
+            </Link>
+          )}
+
+          {isAuthenticated && (
+            <Link to="/wallet" className="navbar__credits">
+              <Gem size={15} />
+              {loadingWallet && credits === null ? (
+                <span className="navbar__credits-skeleton" />
+              ) : (
+                <span className="navbar__credits-value">{credits ?? 0}</span>
+              )}
             </Link>
           )}
 
@@ -333,6 +345,19 @@ export default function Navbar({ searchQuery = "", onSearchChange, onMenuClick }
                   {getInitials(user?.name)}
                 </div>
                 Profile
+              </NavLink>
+              <NavLink
+                to="/wallet"
+                className={({ isActive }) =>
+                  `navbar__drawer-link ${isActive ? "navbar__drawer-link--active" : ""}`
+                }
+                onClick={closeDrawer}
+              >
+                <Gem size={18} />
+                Wallet
+                {credits !== null && (
+                  <span className="navbar__drawer-credits">{credits}</span>
+                )}
               </NavLink>
             </>
           )}

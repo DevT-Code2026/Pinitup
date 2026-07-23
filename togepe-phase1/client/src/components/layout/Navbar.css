@@ -183,6 +183,47 @@
   background: #333;
 }
 
+/* ── Credits pill ── */
+.navbar__credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #eef2ff;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.navbar__credits:hover {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.navbar__credits-value {
+  line-height: 1;
+}
+
+.navbar__credits-skeleton {
+  display: inline-block;
+  width: 24px;
+  height: 14px;
+  border-radius: 6px;
+  background: #c7d2fe;
+  animation: navbar-credits-shimmer 1.4s infinite;
+}
+
+@keyframes navbar-credits-shimmer {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
 /* ── Hamburger (hidden on desktop) ── */
 .navbar__hamburger {
   display: none;
@@ -496,6 +537,16 @@
   .navbar__drawer-signout:hover {
     background: #fef2f2;
     color: #dc2626;
+  }
+
+  .navbar__drawer-credits {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 2px 10px;
+    border-radius: 999px;
   }
 
   .navbar__drawer-login {
