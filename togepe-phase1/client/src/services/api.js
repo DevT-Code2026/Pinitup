@@ -54,9 +54,10 @@ api.interceptors.response.use(
 
 export const getWorkflows = () => api.get("/workflows");
 export const getWorkflow = (slug) => api.get(`/workflows/${slug}`);
-export const uploadWorkflowImage = (file) => {
+export const uploadWorkflowImage = (coupleFile, memeFile) => {
   const formData = new FormData();
-  formData.append("image", file);
+  formData.append("couple_image", coupleFile);
+  formData.append("meme_image", memeFile);
   return api.post("/workflows/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

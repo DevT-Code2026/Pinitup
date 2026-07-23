@@ -5,25 +5,36 @@ import { uploadBufferToCloudinary } from "../config/cloudinary.js";
 
 /**
  * POST /api/workflows/upload
- * Protected — upload an image for use in workflow execution.
- * Multer (memoryStorage) places the file buffer on req.file.
- * The buffer is streamed to Cloudinary; no temp files touch disk.
- * Returns the public HTTPS URL the frontend will pass as input.coupleImage.
+ * Protected — upload two images for use in workflow execution.
+ * Multer (memoryStorage) places file buffers on req.files.couple_image[0]
+ * and req.files.meme_image[0]. Both are streamed to Cloudinary.
+ * Returns the public HTTPS URLs the frontend will pass to execute.
  */
 export const uploadWorkflowImage = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
+    const coupleFile = req.files?.couple_image?.[0];
+    const memeFile = req.files?.meme_image?.[0];
+
+    if (!coupleFile || !memeFile) {
+      return res.status(400).json({
+        message: "Both couple_image and meme_image are required",
+      });
     }
 
-    const result = await uploadBufferToCloudinary(req.file.buffer, {
-      resourceType: "image",
-      folder: "pinitup/workflows",
-    });
+    const [coupleResult, memeResult] = await Promise.all([
+      uploadBufferToCloudinary(coupleFile.buffer, {
+        resourceType: "image",
+        folder: "pinitup/workflows",
+      }),
+      uploadBufferToCloudinary(memeFile.buffer, {
+        resourceType: "image",
+        folder: "pinitup/workflows",
+      }),
+    ]);
 
     res.status(200).json({
-      url: result.secure_url,
-      publicId: result.public_id,
+      coupleImage: coupleResult.secure_url,
+      memeImage: memeResult.secure_url,
     });
   } catch (error) {
     console.error("[WorkflowController] Upload error:", error.message);

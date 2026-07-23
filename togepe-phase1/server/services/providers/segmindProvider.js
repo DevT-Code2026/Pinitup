@@ -82,14 +82,7 @@ const SegmindProvider = {
       console.log(`[SegmindProvider] Poll status: ${status}`);
 
       if (status === "COMPLETED") {
-        const imageUrl =
-          json.image ||
-          json.output ||
-          json.result ||
-          json.url ||
-          json.image_url ||
-          json.images?.[0] ||
-          null;
+        const imageUrl = this._extractImageUrl(json);
 
         console.log("[SegmindProvider] Poll COMPLETED | imageUrl:", typeof imageUrl === "string" ? imageUrl.slice(0, 80) : imageUrl);
         console.log("[SegmindProvider] Final response:", JSON.stringify(json, null, 2));
@@ -116,6 +109,46 @@ const SegmindProvider = {
     throw new Error(
       `Segmind generation timed out after ${POLL_TIMEOUT_MS / 1000}s (${attempt} polls) — requestId: ${requestId}`
     );
+  },
+
+  /**
+   * Extract image URL from a Segmind response.
+   *
+   * Handles two formats:
+   *   1. Direct model API — json.image / json.output / json.images[0] etc.
+   *   2. PixelFlow workflow — json.output is a stringified JSON array:
+   *      '[{"keyname":"final_image","value":["url1","url2"]}]'
+   */
+  _extractImageUrl(json) {
+    // Direct model API fields
+    const direct =
+      json.image ||
+      json.result ||
+      json.url ||
+      json.image_url ||
+      json.images?.[0] ||
+      null;
+
+    if (direct && typeof direct === "string") return direct;
+
+    // PixelFlow workflow: output is a stringified JSON array
+    const output = json.output;
+    if (typeof output === "string") {
+      try {
+        const parsed = JSON.parse(output);
+        if (Array.isArray(parsed)) {
+          const finalImage = parsed.find((o) => o.keyname === "final_image");
+          if (finalImage?.value?.[0]) return finalImage.value[0];
+          // Fallback: first entry with a value array
+          if (parsed[0]?.value?.[0]) return parsed[0].value[0];
+        }
+      } catch {
+        // output is a plain string URL
+        if (output.startsWith("http")) return output;
+      }
+    }
+
+    return null;
   },
 
   /**
@@ -148,14 +181,15 @@ const SegmindProvider = {
       throw new Error("No image provided: input.coupleImage is required");
     }
 
-    const memeImage = input.memeImage || process.env.SEGMIND_MEME_TEMPLATE_URL || "";
+    const memeImage = input.memeImage;
+    if (!memeImage) {
+      throw new Error("No image provided: input.memeImage is required");
+    }
 
     const payload = {
       couple_image: coupleImage,
+      meme_image: memeImage,
     };
-    if (memeImage) {
-      payload.meme_image = memeImage;
-    }
 
     console.log("[SegmindProvider] Calling endpoint:", endpoint);
     console.log("[SegmindProvider] Payload:", JSON.stringify(payload, null, 2));
@@ -212,14 +246,7 @@ const SegmindProvider = {
 
     // --- Synchronous completion (status already COMPLETED or no poll_url) --
     if (status === "COMPLETED" || (!pollUrl && status !== "QUEUED")) {
-      const imageUrl =
-        json.image ||
-        json.output ||
-        json.result ||
-        json.url ||
-        json.image_url ||
-        json.images?.[0] ||
-        null;
+      const imageUrl = this._extractImageUrl(json);
 
       console.log("[SegmindProvider] Synchronous completion | imageUrl:", typeof imageUrl === "string" ? imageUrl.slice(0, 80) : imageUrl);
 

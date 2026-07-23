@@ -50,7 +50,7 @@ export default function Workflows() {
   const [toast, setToast] = useState({ message: "", type: "success" });
   const mountedRef = useRef(true);
 
-  const [fileMap, setFileMap] = useState({});
+  const [filesMap, setFilesMap] = useState({});
   const [previewMap, setPreviewMap] = useState({});
   const [uploadingMap, setUploadingMap] = useState({});
   const [uploadErrorMap, setUploadErrorMap] = useState({});
@@ -82,46 +82,48 @@ export default function Workflows() {
     };
   }, [fetchWorkflows]);
 
-  const handleFileSelect = (slug, file) => {
+  const handleFileSelect = (slug, field, file) => {
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setUploadErrorMap((prev) => ({ ...prev, [slug]: "Please select an image file" }));
+    if (!file.type.startsWith("image/") || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadErrorMap((prev) => ({ ...prev, [`${slug}-${field}`]: "JPG, PNG, or WebP only" }));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setUploadErrorMap((prev) => ({ ...prev, [slug]: "Image must be under 10MB" }));
+      setUploadErrorMap((prev) => ({ ...prev, [`${slug}-${field}`]: "Image must be under 10MB" }));
       return;
     }
 
-    if (previewMap[slug]) URL.revokeObjectURL(previewMap[slug]);
+    const key = `${slug}-${field}`;
+    if (previewMap[key]) URL.revokeObjectURL(previewMap[key]);
 
     const preview = URL.createObjectURL(file);
-    setFileMap((prev) => ({ ...prev, [slug]: file }));
-    setPreviewMap((prev) => ({ ...prev, [slug]: preview }));
-    setUploadErrorMap((prev) => ({ ...prev, [slug]: "" }));
+    setFilesMap((prev) => ({ ...prev, [key]: file }));
+    setPreviewMap((prev) => ({ ...prev, [key]: preview }));
+    setUploadErrorMap((prev) => ({ ...prev, [key]: "" }));
     setErrorMap((prev) => ({ ...prev, [slug]: "" }));
   };
 
-  const handleRemoveImage = (slug) => {
-    if (previewMap[slug]) URL.revokeObjectURL(previewMap[slug]);
-    setFileMap((prev) => {
+  const handleRemoveImage = (slug, field) => {
+    const key = `${slug}-${field}`;
+    if (previewMap[key]) URL.revokeObjectURL(previewMap[key]);
+    setFilesMap((prev) => {
       const next = { ...prev };
-      delete next[slug];
+      delete next[key];
       return next;
     });
     setPreviewMap((prev) => {
       const next = { ...prev };
-      delete next[slug];
+      delete next[key];
       return next;
     });
     setUploadErrorMap((prev) => {
       const next = { ...prev };
-      delete next[slug];
+      delete next[key];
       return next;
     });
-    if (fileInputRefs.current[slug]) {
-      fileInputRefs.current[slug].value = "";
+    if (fileInputRefs.current[key]) {
+      fileInputRefs.current[key].value = "";
     }
   };
 
@@ -130,31 +132,32 @@ export default function Workflows() {
     e.stopPropagation();
   };
 
-  const handleDrop = (slug, e) => {
+  const handleDrop = (slug, field, e) => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelect(slug, file);
+    if (file) handleFileSelect(slug, field, file);
   };
 
   const handleExecute = async (slug) => {
-    const file = fileMap[slug];
-    if (!file) return;
+    const coupleFile = filesMap[`${slug}-couple`];
+    const memeFile = filesMap[`${slug}-meme`];
+    if (!coupleFile || !memeFile) return;
 
     setExecutingMap((prev) => ({ ...prev, [slug]: true }));
     setUploadingMap((prev) => ({ ...prev, [slug]: true }));
     setErrorMap((prev) => ({ ...prev, [slug]: "" }));
     setResultMap((prev) => ({ ...prev, [slug]: "" }));
-    setUploadErrorMap((prev) => ({ ...prev, [slug]: "" }));
+    setUploadErrorMap((prev) => ({ ...prev, [`${slug}-couple`]: "", [`${slug}-meme`]: "" }));
 
     try {
-      const uploadRes = await uploadWorkflowImage(file);
+      const uploadRes = await uploadWorkflowImage(coupleFile, memeFile);
       if (!mountedRef.current) return;
 
-      const imageUrl = uploadRes.data.url;
+      const { coupleImage, memeImage } = uploadRes.data;
       setUploadingMap((prev) => ({ ...prev, [slug]: false }));
 
-      const execRes = await executeWorkflow(slug, { coupleImage: imageUrl });
+      const execRes = await executeWorkflow(slug, { coupleImage, memeImage });
       if (!mountedRef.current) return;
 
       const data = execRes.data;
@@ -176,7 +179,7 @@ export default function Workflows() {
       const msg = err.response?.data?.message || "Something went wrong. Please try again.";
 
       if (isUploadError) {
-        setUploadErrorMap((prev) => ({ ...prev, [slug]: msg }));
+        setUploadErrorMap((prev) => ({ ...prev, [`${slug}-couple`]: msg, [`${slug}-meme`]: msg }));
       } else {
         setErrorMap((prev) => ({ ...prev, [slug]: msg }));
       }
@@ -186,6 +189,59 @@ export default function Workflows() {
         setUploadingMap((prev) => ({ ...prev, [slug]: false }));
       }
     }
+  };
+
+  const renderUploadField = (slug, field, label, sublabel) => {
+    const key = `${slug}-${field}`;
+    const file = filesMap[key];
+    const preview = previewMap[key];
+    const uploadError = uploadErrorMap[key];
+
+    return (
+      <div className="wf-card__upload-field">
+        <div className="wf-card__upload-label">
+          <span className="wf-card__upload-label-text">{label}</span>
+          <span className="wf-card__upload-label-hint">{sublabel}</span>
+        </div>
+        {preview ? (
+          <div className="wf-card__preview">
+            <img src={preview} alt={label} className="wf-card__preview-img" />
+            <button
+              className="wf-card__preview-remove"
+              onClick={() => handleRemoveImage(slug, field)}
+              aria-label={`Remove ${label}`}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <label
+            className="wf-card__dropzone"
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(slug, field, e)}
+          >
+            <input
+              ref={(el) => { fileInputRefs.current[key] = el; }}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="wf-card__file-input"
+              onChange={(e) => handleFileSelect(slug, field, e.target.files?.[0])}
+            />
+            <Upload size={18} className="wf-card__dropzone-icon" />
+            <span className="wf-card__dropzone-text">
+              Drop or <span className="wf-card__dropzone-link">browse</span>
+            </span>
+            <span className="wf-card__dropzone-hint">JPG, PNG, WebP — max 10 MB</span>
+          </label>
+        )}
+        {uploadError && (
+          <div className="wf-card__upload-error">
+            <AlertTriangle size={13} />
+            <span>{uploadError}</span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   let content;
@@ -222,7 +278,7 @@ export default function Workflows() {
         >
           <h1 className="wf-header__title">AI Workflows</h1>
           <p className="wf-header__subtitle">
-            Upload an image and let AI transform it for you.
+            Upload your photos and let AI create something amazing.
           </p>
         </motion.div>
 
@@ -234,9 +290,7 @@ export default function Workflows() {
             const isUploading = uploadingMap[wf.slug];
             const result = resultMap[wf.slug];
             const execError = errorMap[wf.slug];
-            const uploadError = uploadErrorMap[wf.slug];
-            const hasFile = Boolean(fileMap[wf.slug]);
-            const preview = previewMap[wf.slug];
+            const hasBoth = Boolean(filesMap[`${wf.slug}-couple`] && filesMap[`${wf.slug}-meme`]);
             const insufficientCredits = isAuthenticated && credits !== null && credits < wf.creditCost;
             const isBusy = isExecuting || isUploading;
 
@@ -303,56 +357,12 @@ export default function Workflows() {
 
                 {isAuthenticated && !result && (
                   <div className="wf-card__upload-section">
-                    {preview ? (
-                      <div className="wf-card__preview">
-                        <img
-                          src={preview}
-                          alt="Selected input"
-                          className="wf-card__preview-img"
-                        />
-                        {!isBusy && (
-                          <button
-                            className="wf-card__preview-remove"
-                            onClick={() => handleRemoveImage(wf.slug)}
-                            aria-label="Remove image"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                        {isUploading && (
-                          <div className="wf-card__preview-overlay">
-                            <Loader2 size={20} className="wf-card__spinner" />
-                            <span>Uploading...</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <label
-                        className="wf-card__dropzone"
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(wf.slug, e)}
-                      >
-                        <input
-                          ref={(el) => { fileInputRefs.current[wf.slug] = el; }}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="wf-card__file-input"
-                          onChange={(e) => handleFileSelect(wf.slug, e.target.files?.[0])}
-                        />
-                        <Upload size={20} className="wf-card__dropzone-icon" />
-                        <span className="wf-card__dropzone-text">
-                          Drop an image or <span className="wf-card__dropzone-link">browse</span>
-                        </span>
-                        <span className="wf-card__dropzone-hint">
-                          JPG, PNG, WebP — max 10 MB
-                        </span>
-                      </label>
-                    )}
-
-                    {uploadError && (
-                      <div className="wf-card__upload-error">
-                        <AlertTriangle size={13} />
-                        <span>{uploadError}</span>
+                    {renderUploadField(wf.slug, "couple", "Your Photo", "The couple or group photo")}
+                    {renderUploadField(wf.slug, "meme", "Meme Reference", "The meme to recreate")}
+                    {isUploading && (
+                      <div className="wf-card__uploading-status">
+                        <Loader2 size={14} className="wf-card__spinner" />
+                        <span>Uploading images...</span>
                       </div>
                     )}
                   </div>
@@ -392,7 +402,7 @@ export default function Workflows() {
                   {isAuthenticated ? (
                     <button
                       className={`wf-card__generate-btn ${result && !isBusy ? "wf-card__generate-btn--success" : ""}`}
-                      disabled={!hasFile || isBusy || insufficientCredits}
+                      disabled={!hasBoth || isBusy || insufficientCredits}
                       onClick={() => handleExecute(wf.slug)}
                     >
                       {isUploading ? (

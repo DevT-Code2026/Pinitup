@@ -393,6 +393,21 @@ Phase 5 — Execution Reliability, History & Transaction Safety Complete (Workfl
 ## Daily Progress Log
 
 ### 2026-07-23
+- **Dual image upload for workflow execution:**
+  - Backend: `workflowRoutes.js` — created dedicated `workflowUpload` multer instance with `files: 2` limit, image-only filter (jpeg/png/webp), wired via `upload.fields([{ name: "couple_image" }, { name: "meme_image" }])`
+  - Backend: `uploadWorkflowImage` controller — accepts `req.files.couple_image[0]` and `req.files.meme_image[0]`, uploads both to Cloudinary in parallel via `Promise.all`, returns `{ coupleImage, memeImage }`
+  - Backend: `segmindProvider.js` — removed `SEGMIND_MEME_TEMPLATE_URL` fallback; now requires both `input.coupleImage` and `input.memeImage` from the controller
+  - Backend: `.env.example` — removed `SEGMIND_MEME_TEMPLATE_URL`
+  - Frontend: `api.js` — `uploadWorkflowImage(coupleFile, memeFile)` sends FormData with both files
+  - Frontend: `Workflows.jsx` — dual upload UI: two labeled upload fields ("Your Photo" + "Meme Reference"), each with dropzone/preview/remove; Generate disabled until both selected; `handleExecute` sends both URLs via `executeWorkflow(slug, { coupleImage, memeImage })`
+  - Frontend: `Workflows.css` — `.wf-card__upload-field`, `.wf-card__upload-label`, `.wf-card__uploading-status` styles; preview height reduced to 140px for dual layout
+  - Both builds verified clean
+- **Segmind payload fix — reverted to documented workflow API:**
+  - Reverted `segmindProvider.js` payload back to `{ couple_image, meme_image }` — the documented workflow contract. Confirmed this works: workflow returns `COMPLETED` with image URLs
+  - Added `_extractImageUrl()` helper to parse PixelFlow workflow output format: `output` is a stringified JSON array `[{"keyname":"final_image","value":["url1"]}]` — not a direct URL
+  - Removed unused `SEGMIND_DEFAULT_PROMPT` from `.env.example`
+  - Root cause of earlier failures: I changed the payload to `{ image_urls, prompt }` based on the direct model API docs, but the PixelFlow workflow expects `{ couple_image, meme_image }` — the internal node mapping is handled by the workflow, not by our payload
+  - Verified: direct model API (`/v2/p-image-edit`) works with `{ image_urls, prompt }` but the workflow endpoint must use `{ couple_image, meme_image }`
 - **Workflow image upload — production-ready implementation:**
   - Backend: `POST /api/workflows/upload` route with multer (memoryStorage, 10MB, image MIME types) + Cloudinary upload → returns `{ url, publicId }`; upload failure never touches credits
   - Backend: `uploadWorkflowImage` controller in `workflowController.js` — streams buffer to Cloudinary via `uploadBufferToCloudinary`, folder `pinitup/workflows`

@@ -356,7 +356,30 @@
 .wf-card__upload-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+}
+
+.wf-card__upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-card__upload-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.wf-card__upload-label-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.wf-card__upload-label-hint {
+  font-size: 0.72rem;
+  color: #9ca3af;
 }
 
 .wf-card__dropzone {
@@ -365,7 +388,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 20px 16px;
+  padding: 16px 12px;
   border: 2px dashed #d1d5db;
   border-radius: 12px;
   background: #fafbfc;
@@ -421,7 +444,7 @@
 
 .wf-card__preview-img {
   width: 100%;
-  height: 180px;
+  height: 140px;
   object-fit: cover;
   display: block;
 }
@@ -476,4 +499,14 @@
   padding: 6px 10px;
   background: #fef2f2;
   border-radius: 8px;
+}
+
+.wf-card__uploading-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #4f46e5;
+  font-weight: 600;
+  padding: 4px 0;
 }
