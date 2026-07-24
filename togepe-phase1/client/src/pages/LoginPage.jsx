@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import "./LoginPage.css";
@@ -10,14 +10,16 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated } = useAuth();
 
-  // If user already has a token, skip login and go straight to dashboard.
+  const returnTo = location.state?.from || "/dashboard";
+
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, returnTo]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ function LoginPage() {
     try {
       const res = await api.post("/auth/login", { email, password });
       login(res.data.token, res.data.user);
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
@@ -35,6 +37,9 @@ function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
+    if (returnTo && returnTo !== "/dashboard") {
+      localStorage.setItem("pinitup_returnTo", returnTo);
+    }
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
     window.location.href = `${apiUrl}/auth/google`;
   };

@@ -29,7 +29,9 @@ function OAuthSuccess() {
       }
 
       login(token, user);
-      navigate("/dashboard", { replace: true });
+      const returnTo = localStorage.getItem("pinitup_returnTo") || "/dashboard";
+      localStorage.removeItem("pinitup_returnTo");
+      navigate(returnTo, { replace: true });
     } else {
       navigate("/login", { replace: true });
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Loader2,
   X,
   Share2,
+  Sparkles,
 } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
@@ -32,6 +33,7 @@ import "./PromptDetail.css";
 export default function PromptDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -366,6 +368,36 @@ export default function PromptDetail() {
                   #{tag}
                 </span>
               ))}
+            </div>
+          )}
+
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="prompt-detail__generate-btn"
+              onClick={() =>
+                navigate("/workflows", { state: { promptId: prompt._id } })
+              }
+            >
+              <Sparkles size={16} />
+              Generate with this Prompt
+            </button>
+          ) : (
+            <div className="prompt-detail__generate-guest">
+              <button
+                type="button"
+                className="prompt-detail__generate-btn"
+                onClick={() =>
+                  navigate("/login", {
+                    state: { from: location.pathname },
+                  })
+                }
+              >
+                Login to Generate
+              </button>
+              <span className="prompt-detail__generate-hint">
+                Sign in to generate an image using this prompt.
+              </span>
             </div>
           )}
         </div>

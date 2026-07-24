@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 // The single source of truth for route protection. Individual pages no
@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 // whichever routes need a logged-in user.
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   // Auth state loads synchronously from localStorage on mount, but that
   // still happens after the first render — this avoids a false redirect
@@ -15,7 +16,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   return children;

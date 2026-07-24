@@ -166,6 +166,41 @@
   font-size: 0.8rem;
 }
 
+.prompt-detail__generate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 14px;
+  background: #4f46e5;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.prompt-detail__generate-btn:hover {
+  background: #4338ca;
+  transform: translateY(-2px);
+}
+
+.prompt-detail__generate-guest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.prompt-detail__generate-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
 /* ==========================
    Actions
 ========================== */

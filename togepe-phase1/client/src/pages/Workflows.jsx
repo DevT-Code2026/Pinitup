@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Zap,
@@ -41,6 +42,8 @@ function getProviderMeta(provider) {
 }
 
 export default function Workflows() {
+  const location = useLocation();
+  const workflowGridRef = useRef(null);
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,6 +84,12 @@ export default function Workflows() {
       Object.values(previewMap).forEach((url) => URL.revokeObjectURL(url));
     };
   }, [fetchWorkflows]);
+
+  useEffect(() => {
+    if (location.state?.promptId && workflowGridRef.current && !loading) {
+      workflowGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.state?.promptId, loading]);
 
   const handleFileSelect = (slug, field, file) => {
     if (!file) return;
@@ -282,7 +291,7 @@ export default function Workflows() {
           </p>
         </motion.div>
 
-        <div className="wf-grid">
+        <div className="wf-grid" ref={workflowGridRef}>
           {workflows.map((wf, index) => {
             const providerMeta = getProviderMeta(wf.provider);
             const ProviderIcon = providerMeta.icon;

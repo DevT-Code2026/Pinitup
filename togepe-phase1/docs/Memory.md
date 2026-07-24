@@ -300,8 +300,6 @@ Pinitup is a Pinterest-inspired AI Prompt sharing platform where users can disco
 
 ## Pending Features
 
-- Real AI provider integration (replace mock execution in WorkflowExecutionService)
-- Refund system (Phase 5)
 - Payment gateway integration (Phase 6)
 - Admin credit management UI
 - User profile page (proper implementation, not Dashboard reuse)
@@ -693,6 +691,15 @@ Phase 5 — Execution Reliability, History & Transaction Safety Complete (Workfl
   - Rewrote `UserMenu.jsx` — white dropdown, black text, shadow elevation, "Sign out" label
   - Updated `GuestFeedCTA.css` — black accent replacing indigo/purple (icon bg, sign-in button, sparkle text)
   - Fixed `sharePrompt` import in PromptCard.jsx (default export, not named)
+  - Verified clean production build
+- **Guest-to-login generation flow (Prompt Details):**
+  - `PromptDetail.jsx` — two-state CTA: authenticated shows "Generate with this Prompt" (Sparkles) navigating to `/workflows` with `promptId` in state; unauthenticated shows "Login to Generate" navigating to `/login` with `state: { from: location.pathname }` + helper text "Sign in to generate an image using this prompt."
+  - `PromptDetail.css` — `.prompt-detail__generate-btn` full-width, `.prompt-detail__generate-guest` flex column, `.prompt-detail__generate-hint` muted helper text
+  - `Workflows.jsx` — reads `location.state?.promptId` from PromptDetail, auto-scrolls workflow grid into view on arrival; added `useLocation` import and `workflowGridRef`
+  - `LoginPage.jsx` — reads `location.state?.from` and redirects there after login/OAuth; Google OAuth stores `returnTo` in `localStorage` before redirect
+  - `OAuthSuccess.jsx` — reads `pinitup_returnTo` from `localStorage`, clears it, redirects there after token set
+  - `ProtectedRoute.jsx` — passes `state={{ from: location.pathname }}` when redirecting unauthenticated users to `/login`
+  - All frontend-only, no backend API changes
   - Verified clean production build
 
 ## Developer Notes
