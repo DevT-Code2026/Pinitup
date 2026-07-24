@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import PageViewTracker from "./components/PageViewTracker.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
@@ -21,6 +22,7 @@ import ExecutionHistory from "./pages/ExecutionHistory.jsx";
 function App() {
   return (
     <BrowserRouter>
+      <PageViewTracker />
       <ErrorBoundary>
         <Routes>
           {/* Public */}
